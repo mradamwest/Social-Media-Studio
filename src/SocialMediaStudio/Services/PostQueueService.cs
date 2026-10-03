@@ -13,6 +13,7 @@ public sealed class PostQueueService
     private readonly string _path;
     private readonly JsonSerializerOptions _json = new() { WriteIndented = true };
     private readonly object _gate = new();
+    private readonly string _backupPath;
 
     public PostQueueService(string? path = null)
     {
