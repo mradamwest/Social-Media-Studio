@@ -50,6 +50,11 @@ public partial class MainWindow : Window
         PlannerView.Visibility = Visibility.Visible;
     }
 
+    private void RefreshPlanner(object sender, RoutedEventArgs e)
+    {
+        PlannerList.ItemsSource = _postQueue.List().OrderBy(x => x.ScheduledFor ?? x.CreatedAt).ToArray();
+    }
+
     private void ShowAccounts(object sender, RoutedEventArgs e)
     {
         _accountStates.Restore(Accounts);
