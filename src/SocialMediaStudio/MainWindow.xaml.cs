@@ -43,6 +43,19 @@ public partial class MainWindow : Window
         MediaLibraryView.Visibility = Visibility.Collapsed;
     }
 
+    private void ShowAnalytics(object sender, RoutedEventArgs e)
+    {
+        var posts = _postQueue.List();
+        AnalyticsPublished.Text = posts.Count(x => x.State == PublishState.Published).ToString();
+        AnalyticsScheduled.Text = posts.Count(x => x.State == PublishState.Scheduled).ToString();
+        AnalyticsFailed.Text = posts.Count(x => x.State is PublishState.Failed or PublishState.NeedsAttention).ToString();
+        CreatePostView.Visibility = Visibility.Collapsed;
+        PlannerView.Visibility = Visibility.Collapsed;
+        MediaLibraryView.Visibility = Visibility.Collapsed;
+        AccountsView.Visibility = Visibility.Collapsed;
+        AnalyticsView.Visibility = Visibility.Visible;
+    }
+
     private void ShowMediaLibrary(object sender, RoutedEventArgs e)
     {
         MediaLibraryList.ItemsSource = _postQueue.List().SelectMany(x => x.MediaFiles).Distinct(StringComparer.OrdinalIgnoreCase).OrderBy(Path.GetFileName).ToArray();
