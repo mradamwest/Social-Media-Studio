@@ -18,6 +18,7 @@ public partial class MainWindow : Window
     private readonly PostDraft _draft = new();
     private readonly PublishingCoordinator _publishing;
     private readonly PostQueueService _postQueue = new();
+    private string? _editingQueuedPostId;
 
     public ObservableCollection<SocialAccount> Accounts { get; } =
         new(ProviderCatalog.Providers.Select(p => new SocialAccount { Provider = p }));
