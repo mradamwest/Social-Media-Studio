@@ -225,7 +225,12 @@ public partial class MainWindow : Window
         _draft.Title = TitleBox.Text.Trim();
         _draft.Caption = CaptionBox.Text.Trim();
         _draft.State = PublishState.Draft;
-        PublishStatusText.Text = "Draft saved in this session.";
+        try
+        {
+            var saved = _postQueue.Create(CurrentPostRequest());
+            PublishStatusText.Text = $"Draft saved — {saved.Id[..8]}";
+        }
+        catch (Exception ex) { MessageBox.Show(ex.Message, "Save Draft", MessageBoxButton.OK, MessageBoxImage.Warning); }
     }
 
     private void ScheduleDraft(object sender, RoutedEventArgs e)
@@ -239,7 +244,12 @@ public partial class MainWindow : Window
         }
         _draft.ScheduledFor = DateTimeOffset.Now.AddHours(1);
         _draft.State = PublishState.Scheduled;
-        PublishStatusText.Text = $"Scheduled for {_draft.ScheduledFor:MMM d, h:mm tt}. Planner time editing is coming next.";
+        try
+        {
+            var saved = _postQueue.Create(CurrentPostRequest(), _draft.ScheduledFor);
+            PublishStatusText.Text = $"Scheduled for {saved.ScheduledFor:MMM d, h:mm tt} — saved to Planner queue.";
+        }
+        catch (Exception ex) { MessageBox.Show(ex.Message, "Schedule", MessageBoxButton.OK, MessageBoxImage.Warning); }
     }
 
     private void EditPlannerPost(object sender, RoutedEventArgs e)
