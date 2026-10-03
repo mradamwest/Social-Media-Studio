@@ -31,7 +31,7 @@ public sealed class PostQueueService
     public QueuedPost Create(AutomationPostRequest request, DateTimeOffset? scheduledFor = null)
     {
         ArgumentNullException.ThrowIfNull(request);
-        Validate(request, scheduledFor);
+        Validate(request, scheduledFor, allowIncompleteDraft: scheduledFor is null);
 
         lock (_gate)
         {
@@ -47,7 +47,7 @@ public sealed class PostQueueService
     {
         if (string.IsNullOrWhiteSpace(id)) throw new ArgumentException("Post ID is required.", nameof(id));
         ArgumentNullException.ThrowIfNull(request);
-        Validate(request, scheduledFor);
+        Validate(request, scheduledFor, allowIncompleteDraft: scheduledFor is null);
 
         lock (_gate)
         {
