@@ -27,6 +27,7 @@ public static class McpJsonRpcProtocol
             tools = new object[]
             {
                 Tool("list_queued_posts", "List drafts and scheduled posts", new { type = "object", properties = new { } }),
+                Tool("list_publishing_history", "List recent publishing outcomes", new { type = "object", properties = new { } }),
                 Tool("get_post_status", "Get a publishing-history entry by ID", new
                 {
                     type = "object",
@@ -47,6 +48,20 @@ public static class McpJsonRpcProtocol
                         scheduledFor = new { type = "string", format = "date-time" }
                     },
                     required = new[] { "networks", "scheduledFor" }
+                }),
+                Tool("edit_post", "Edit or reschedule a queued post", new
+                {
+                    type = "object",
+                    properties = new
+                    {
+                        id = new { type = "string" },
+                        caption = new { type = "string" },
+                        networks = new { type = "array", items = new { type = "string" } },
+                        title = new { type = "string" },
+                        mediaFiles = new { type = "array", items = new { type = "string" } },
+                        scheduledFor = new { type = "string", format = "date-time" }
+                    },
+                    required = new[] { "id", "networks" }
                 }),
                 Tool("delete_post", "Delete a queued draft or scheduled post", new
                 {
