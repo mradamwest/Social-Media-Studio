@@ -153,6 +153,7 @@ public partial class MainWindow : Window
 
     private async void PostNow(object sender, RoutedEventArgs e)
     {
+        _draft.Title = TitleBox.Text.Trim();
         _draft.Caption = CaptionBox.Text.Trim();
         if (_draft.Networks.Count == 0)
         {
