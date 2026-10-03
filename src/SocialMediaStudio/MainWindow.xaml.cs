@@ -38,6 +38,15 @@ public partial class MainWindow : Window
     {
         CreatePostView.Visibility = Visibility.Visible;
         AccountsView.Visibility = Visibility.Collapsed;
+        PlannerView.Visibility = Visibility.Collapsed;
+    }
+
+    private void ShowPlanner(object sender, RoutedEventArgs e)
+    {
+        PlannerList.ItemsSource = _postQueue.List().OrderBy(x => x.ScheduledFor ?? x.CreatedAt).ToArray();
+        CreatePostView.Visibility = Visibility.Collapsed;
+        AccountsView.Visibility = Visibility.Collapsed;
+        PlannerView.Visibility = Visibility.Visible;
     }
 
     private void ShowAccounts(object sender, RoutedEventArgs e)
