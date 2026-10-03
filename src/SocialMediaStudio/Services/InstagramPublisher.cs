@@ -36,10 +36,22 @@ public sealed class InstagramPublisher : ISocialPublisher
         await ValidateAsync(draft, cancellationToken);
         var token = _tokens.LoadOAuth(Provider)
             ?? throw new InvalidOperationException("Instagram is not connected.");
-        var accountId = Environment.GetEnvironmentVariable("SOCIAL_MEDIA_STUDIO_INSTAGRAM_ACCOUNT_ID")
-            ?? throw new InvalidOperationException("Instagram professional account ID is not configured.");
-
+        var accountId = Environment.GetEnvironmentVariable("SOCIAL_MEDIA_STUDIO_INSTAGRAM_ACCOUNT_ID");
         _http.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", token.AccessToken);
+        if (string.IsNullOrWhiteSpace(accountId))
+        {
+            using var pagesResponse = await _http.GetAsync("https://graph.facebook.com/v24.0/me/accounts?fields=id,instagram_business_account{id,username}&limit=100", cancellationToken);
+            if (!pagesResponse.IsSuccessStatusCode)
+                throw new InvalidOperationException($"Instagram account discovery failed ({(int)pagesResponse.StatusCode}).");
+            using var pagesJson = JsonDocument.Parse(await pagesResponse.Content.ReadAsStringAsync(cancellationToken));
+            foreach (var page in pagesJson.RootElement.GetProperty("data").EnumerateArray())
+            {
+                if (page.TryGetProperty("instagram_business_account", out var instagram) && instagram.TryGetProperty("id", out var id))
+                { accountId = id.GetString(); break; }
+            }
+        }
+        if (string.IsNullOrWhiteSpace(accountId))
+            throw new InvalidOperationException("No connected Instagram professional account was found.");
         using var create = new FormUrlEncodedContent(new Dictionary<string,string>
         {
             ["image_url"] = draft.MediaFiles[0],
