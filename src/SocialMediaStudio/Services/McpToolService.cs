@@ -21,12 +21,22 @@ public sealed class McpToolService
         _history = new PublishingHistoryService();
     }
 
-    public Task<IReadOnlyList<PublishResult>> PublishNowAsync(
+    public async Task<IReadOnlyList<PublishResult>> PublishNowAsync(
         string? caption, IReadOnlyList<string> networks, string? title = null,
         IReadOnlyList<string>? mediaFiles = null, CancellationToken cancellationToken = default)
     {
-        return _automation.PublishNowAsync(
+        var results = await _automation.PublishNowAsync(
             new AutomationPostRequest(caption, networks, title, mediaFiles), cancellationToken);
+
+        var failures = results.Count(x => !x.Success);
+        var state = failures == 0
+            ? PublishState.Published
+            : failures == results.Count
+                ? PublishState.Failed
+                : PublishState.NeedsAttention;
+
+        _history.Record("mcp", state, results);
+        return results;
     }
 
     public QueuedPost CreateDraft(
