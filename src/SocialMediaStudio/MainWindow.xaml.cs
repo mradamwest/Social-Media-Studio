@@ -9,6 +9,7 @@ namespace SocialMediaStudio;
 public partial class MainWindow : Window
 {
     private readonly OAuthConnectionService _oauth = new();
+    private readonly OAuthTokenExchangeService _tokenExchange = new();
     private readonly SecureTokenStore _tokens = new();
     private readonly AccountStateService _accountStates;
 
@@ -65,12 +66,20 @@ public partial class MainWindow : Window
             account.State = ConnectionState.Connecting;
             AccountsList.Items.Refresh();
             button.IsEnabled = false;
-            await _oauth.AuthorizeAsync(settings);
+
+            var authorization = await _oauth.AuthorizeAsync(settings);
+            var secretSetting = $"SOCIAL_MEDIA_STUDIO_{provider.ToUpperInvariant()}_APP_SECRET";
+            var clientSecret = Environment.GetEnvironmentVariable(secretSetting);
+            var token = await _tokenExchange.ExchangeAsync(
+                settings, authorization.Code, authorization.RedirectUri, clientSecret);
+
+            _tokens.SaveOAuth(provider, token);
             account.State = ConnectionState.Connected;
-            account.DisplayName = "Authorization received";
+            account.TokenExpiresAt = token.ExpiresAt;
+            account.DisplayName = "Connected";
             AccountsList.Items.Refresh();
-            MessageBox.Show(
-                $"{provider} authorization completed. Token exchange is the next connection step.",
+
+            MessageBox.Show($"{provider} is connected securely.",
                 $"{provider} connected", MessageBoxButton.OK, MessageBoxImage.Information);
         }
         catch (Exception ex)
