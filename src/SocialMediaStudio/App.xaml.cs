@@ -45,7 +45,8 @@ public partial class App : Application
                 try { await executor.ExecuteDueAsync(cancellationToken: cancellation.Token); }
                 catch (OperationCanceledException) when (cancellation.IsCancellationRequested) { break; }
                 catch { /* keep scheduler alive; per-post failures are recorded by the executor */ }
-                await Task.Delay(TimeSpan.FromSeconds(30), cancellation.Token);
+                try { await Task.Delay(TimeSpan.FromSeconds(30), cancellation.Token); }
+                catch (OperationCanceledException) when (cancellation.IsCancellationRequested) { break; }
             }
         }, cancellation.Token);
     }
