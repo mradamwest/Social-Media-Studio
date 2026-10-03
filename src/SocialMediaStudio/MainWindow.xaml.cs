@@ -24,7 +24,9 @@ public partial class MainWindow : Window
     public MainWindow()
     {
         _accountStates = new AccountStateService(_tokens);
-        _publishing = new PublishingCoordinator(new ISocialPublisher[] { new BlueskyPublisher(_tokens), new XPublisher(_tokens), new ThreadsPublisher(_tokens), new FacebookPublisher(_tokens), new InstagramPublisher(_tokens), new YouTubePublisher(_tokens) });
+        var youtubePublisher = new YouTubePublisher(_tokens);
+        youtubePublisher.UploadProgress += YouTubeUploadProgress;
+        _publishing = new PublishingCoordinator(new ISocialPublisher[] { new BlueskyPublisher(_tokens), new XPublisher(_tokens), new ThreadsPublisher(_tokens), new FacebookPublisher(_tokens), new InstagramPublisher(_tokens), youtubePublisher });
         InitializeComponent();
         AccountsList.ItemsSource = Accounts;
         _accountStates.Restore(Accounts);
@@ -151,7 +153,7 @@ public partial class MainWindow : Window
         else _draft.Networks.Remove(provider);
     }
 
-    private async void PostNow(object sender, RoutedEventArgs e)
+    private void YouTubeUploadProgress(long sent, long total)\n    {\n        if (total <= 0) return;\n        var percent = Math.Clamp((int)(sent * 100L / total), 0, 100);\n        Dispatcher.BeginInvoke(() => PublishStatusText.Text = $"Uploading to YouTube… {percent}%");\n    }\n\n    private async void PostNow(object sender, RoutedEventArgs e)
     {
         _draft.Title = TitleBox.Text.Trim();
         _draft.Caption = CaptionBox.Text.Trim();
