@@ -41,7 +41,7 @@ public sealed class YouTubePublisher : ISocialPublisher
         await ValidateAsync(draft, cancellationToken);
         var token = _tokens.LoadOAuth(Provider)
             ?? throw new InvalidOperationException("YouTube is not connected.");
-        if (_tokens.IsExpired(token))
+        if (token.ExpiresAt is not null && token.ExpiresAt <= DateTimeOffset.UtcNow)
         {
             if (string.IsNullOrWhiteSpace(token.RefreshToken))
                 throw new InvalidOperationException("YouTube connection expired. Reconnect YouTube.");
@@ -51,8 +51,9 @@ public sealed class YouTubePublisher : ISocialPublisher
             if (string.IsNullOrWhiteSpace(clientId))
                 throw new InvalidOperationException("YouTube connection needs account setup again.");
             var settings = new OAuthProviderSettings(definition.Provider, clientId, definition.AuthorizationEndpoint, definition.TokenEndpoint, definition.Scope);
-            token = await _tokenExchange.RefreshAsync(settings, token.RefreshToken, credential?.ClientSecret, cancellationToken);
-            _tokens.SaveOAuth(Provider, token);
+            var refreshed = await _tokenExchange.RefreshAsync(settings, token.RefreshToken, credential?.ClientSecret, cancellationToken);
+            _tokens.SaveOAuth(Provider, refreshed);
+            token = new StoredOAuthToken(refreshed.AccessToken, refreshed.RefreshToken, refreshed.ExpiresAt);
         }
 
         var videoPath = draft.MediaFiles.First(IsVideo);
