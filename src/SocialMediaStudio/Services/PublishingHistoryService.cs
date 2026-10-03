@@ -77,6 +77,11 @@ public sealed class PublishingHistoryService
     private static string? Sanitize(string? value)
     {
         if (string.IsNullOrWhiteSpace(value)) return null;
+        if (value.Contains("access_token", StringComparison.OrdinalIgnoreCase) ||
+            value.Contains("refresh_token", StringComparison.OrdinalIgnoreCase) ||
+            value.Contains("client_secret", StringComparison.OrdinalIgnoreCase) ||
+            value.Contains("authorization:", StringComparison.OrdinalIgnoreCase))
+            return "Publishing failed. Sensitive provider details were removed; reconnect the account and try again.";
         return value.Length <= 300 ? value : value[..300] + "…";
     }
 }
