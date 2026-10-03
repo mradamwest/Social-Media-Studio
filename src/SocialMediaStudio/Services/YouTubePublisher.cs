@@ -31,6 +31,10 @@ public sealed class YouTubePublisher : ISocialPublisher
         var videos = draft.MediaFiles.Where(IsVideo).ToArray();
         if (videos.Length != 1)
             throw new InvalidOperationException("YouTube publishing requires exactly one video file.");
+        if (!string.IsNullOrWhiteSpace(draft.Title) && draft.Title.Trim().Length > 100)
+            throw new InvalidOperationException("YouTube title cannot exceed 100 characters.");
+        if ((draft.Caption ?? string.Empty).Length > 5000)
+            throw new InvalidOperationException("YouTube description cannot exceed 5,000 characters.");
         if (!File.Exists(videos[0]))
             throw new InvalidOperationException("The selected YouTube video file was not found.");
         return Task.CompletedTask;
