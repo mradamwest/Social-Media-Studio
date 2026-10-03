@@ -40,6 +40,16 @@ public partial class MainWindow : Window
         CreatePostView.Visibility = Visibility.Visible;
         AccountsView.Visibility = Visibility.Collapsed;
         PlannerView.Visibility = Visibility.Collapsed;
+        MediaLibraryView.Visibility = Visibility.Collapsed;
+    }
+
+    private void ShowMediaLibrary(object sender, RoutedEventArgs e)
+    {
+        MediaLibraryList.ItemsSource = _postQueue.List().SelectMany(x => x.MediaFiles).Distinct(StringComparer.OrdinalIgnoreCase).OrderBy(Path.GetFileName).ToArray();
+        CreatePostView.Visibility = Visibility.Collapsed;
+        PlannerView.Visibility = Visibility.Collapsed;
+        AccountsView.Visibility = Visibility.Collapsed;
+        MediaLibraryView.Visibility = Visibility.Visible;
     }
 
     private void ShowPlanner(object sender, RoutedEventArgs e)
