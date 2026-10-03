@@ -10,11 +10,13 @@ public sealed class McpToolService
 {
     private readonly AutomationPublishingService _automation;
     private readonly PostQueueService _queue;
+    private readonly ScheduledPostExecutor _scheduler;
 
     public McpToolService(AutomationPublishingService automation, PostQueueService queue)
     {
         _automation = automation;
         _queue = queue;
+        _scheduler = new ScheduledPostExecutor(queue, automation);
     }
 
     public Task<IReadOnlyList<PublishResult>> PublishNowAsync(
@@ -56,6 +58,10 @@ public sealed class McpToolService
     }
 
     public IReadOnlyList<QueuedPost> ListQueuedPosts() => _queue.List();
+
+    public Task<IReadOnlyList<ScheduledExecutionResult>> ExecuteDuePostsAsync(
+        CancellationToken cancellationToken = default) =>
+        _scheduler.ExecuteDueAsync(cancellationToken: cancellationToken);
 
     public bool DeleteQueuedPost(string id)
     {
