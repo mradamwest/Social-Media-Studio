@@ -79,7 +79,9 @@ public partial class MainWindow : Window
             clientId,
             definition.AuthorizationEndpoint,
             definition.TokenEndpoint,
-            definition.Scope);
+            definition.Scope,
+            UsePkce: definition.UsePkce,
+            RequestOfflineAccess: definition.RequestOfflineAccess);
 
         try
         {
