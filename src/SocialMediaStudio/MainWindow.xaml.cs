@@ -242,6 +242,28 @@ public partial class MainWindow : Window
         PublishStatusText.Text = $"Scheduled for {_draft.ScheduledFor:MMM d, h:mm tt}. Planner time editing is coming next.";
     }
 
+    private void EditPlannerPost(object sender, RoutedEventArgs e)
+    {
+        if (sender is not Button button || button.Tag is not string id) return;
+        var post = _postQueue.Get(id);
+        if (post is null) return;
+        TitleBox.Text = post.Title ?? string.Empty;
+        CaptionBox.Text = post.Caption;
+        _draft.MediaFiles.Clear(); _draft.MediaFiles.AddRange(post.MediaFiles);
+        _draft.Networks.Clear(); foreach (var network in post.Networks) _draft.Networks.Add(network);
+        MediaDropText.Text = post.MediaFiles.Count == 0 ? "No media selected." : string.Join(Environment.NewLine, post.MediaFiles.Select(Path.GetFileName));
+        CreatePostView.Visibility = Visibility.Visible; PlannerView.Visibility = Visibility.Collapsed; AccountsView.Visibility = Visibility.Collapsed;
+        PublishStatusText.Text = $"Editing saved post {post.Id[..8]}";
+    }
+
+    private void DeletePlannerPost(object sender, RoutedEventArgs e)
+    {
+        if (sender is not Button button || button.Tag is not string id) return;
+        if (MessageBox.Show("Delete this saved post?", "Planner", MessageBoxButton.YesNo, MessageBoxImage.Question) != MessageBoxResult.Yes) return;
+        _postQueue.Delete(id);
+        PlannerList.ItemsSource = _postQueue.List().OrderBy(x => x.ScheduledFor ?? x.CreatedAt).ToArray();
+    }
+
     private AutomationPostRequest CurrentPostRequest() => new(
         CaptionBox.Text.Trim(),
         _draft.Networks.ToArray(),
