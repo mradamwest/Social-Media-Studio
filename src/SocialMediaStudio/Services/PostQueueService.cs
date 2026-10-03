@@ -55,6 +55,17 @@ public sealed class PostQueueService
         return items[index];
     }
 
+    public QueuedPost SetState(string id, PublishState state)
+    {
+        if (string.IsNullOrWhiteSpace(id)) throw new ArgumentException("Post ID is required.", nameof(id));
+        var items = Load().ToList();
+        var index = items.FindIndex(x => string.Equals(x.Id, id, StringComparison.OrdinalIgnoreCase));
+        if (index < 0) throw new KeyNotFoundException("Queued post was not found.");
+        items[index] = items[index] with { State = state };
+        Save(items);
+        return items[index];
+    }
+
     public bool Delete(string id)
     {
         var items = Load().ToList();
