@@ -18,33 +18,39 @@ public sealed class McpToolService
     }
 
     public Task<IReadOnlyList<PublishResult>> PublishNowAsync(
-        string? caption,
-        IReadOnlyList<string> networks,
-        string? title = null,
-        IReadOnlyList<string>? mediaFiles = null,
-        CancellationToken cancellationToken = default)
+        string? caption, IReadOnlyList<string> networks, string? title = null,
+        IReadOnlyList<string>? mediaFiles = null, CancellationToken cancellationToken = default)
     {
-        var request = new AutomationPostRequest(caption, networks, title, mediaFiles);
-        return _automation.PublishNowAsync(request, cancellationToken);
+        return _automation.PublishNowAsync(
+            new AutomationPostRequest(caption, networks, title, mediaFiles), cancellationToken);
     }
 
     public QueuedPost CreateDraft(
-        string? caption,
-        IReadOnlyList<string> networks,
-        string? title = null,
-        IReadOnlyList<string>? mediaFiles = null)
-    {
-        return _queue.Create(new AutomationPostRequest(caption, networks, title, mediaFiles));
-    }
+        string? caption, IReadOnlyList<string> networks, string? title = null,
+        IReadOnlyList<string>? mediaFiles = null) =>
+        _queue.Create(new AutomationPostRequest(caption, networks, title, mediaFiles));
 
     public QueuedPost SchedulePost(
-        string? caption,
-        IReadOnlyList<string> networks,
-        DateTimeOffset scheduledFor,
-        string? title = null,
+        string? caption, IReadOnlyList<string> networks, DateTimeOffset scheduledFor,
+        string? title = null, IReadOnlyList<string>? mediaFiles = null) =>
+        _queue.Create(new AutomationPostRequest(caption, networks, title, mediaFiles), scheduledFor);
+
+    public QueuedPost? GetQueuedPost(string id)
+    {
+        if (string.IsNullOrWhiteSpace(id)) return null;
+        return _queue.Get(id.Trim());
+    }
+
+    public QueuedPost EditQueuedPost(
+        string id, string? caption, IReadOnlyList<string> networks,
+        DateTimeOffset? scheduledFor = null, string? title = null,
         IReadOnlyList<string>? mediaFiles = null)
     {
-        return _queue.Create(
+        if (string.IsNullOrWhiteSpace(id))
+            throw new ArgumentException("Post ID is required.", nameof(id));
+
+        return _queue.Update(
+            id.Trim(),
             new AutomationPostRequest(caption, networks, title, mediaFiles),
             scheduledFor);
     }
@@ -61,21 +67,14 @@ public sealed class McpToolService
         IEnumerable<SocialAccount> accounts)
     {
         ArgumentNullException.ThrowIfNull(accounts);
-
-        return accounts
-            .Select(account => new McpAccountStatus(
-                account.Provider,
-                account.State.ToString(),
-                string.IsNullOrWhiteSpace(account.DisplayName) ? null : account.DisplayName,
-                account.TokenExpiresAt))
-            .ToArray();
+        return accounts.Select(account => new McpAccountStatus(
+            account.Provider,
+            account.State.ToString(),
+            string.IsNullOrWhiteSpace(account.DisplayName) ? null : account.DisplayName,
+            account.TokenExpiresAt)).ToArray();
     }
 }
 
-/// <summary>
-/// Safe account projection for MCP. Deliberately contains no access token, refresh token,
-/// client secret, authorization header, or encrypted token-store data.
-/// </summary>
 public sealed record McpAccountStatus(
     string Provider,
     string State,
