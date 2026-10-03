@@ -8,6 +8,7 @@ public sealed class PublishingHistoryService
 {
     private readonly string _path;
     private readonly JsonSerializerOptions _json = new() { WriteIndented = true };
+    private readonly object _gate = new();
 
     public PublishingHistoryService(string? path = null)
     {
@@ -16,11 +17,15 @@ public sealed class PublishingHistoryService
             "SocialMediaStudio", "publishing-history.json");
     }
 
-    public IReadOnlyList<PublishingHistoryEntry> List() => Load()
-        .OrderByDescending(x => x.CompletedAt).ToArray();
+    public IReadOnlyList<PublishingHistoryEntry> List()
+    {
+        lock (_gate) return Load().OrderByDescending(x => x.CompletedAt).ToArray();
+    }
 
-    public PublishingHistoryEntry? Get(string id) =>
-        Load().FirstOrDefault(x => string.Equals(x.Id, id, StringComparison.OrdinalIgnoreCase));
+    public PublishingHistoryEntry? Get(string id)
+    {
+        lock (_gate) return Load().FirstOrDefault(x => string.Equals(x.Id, id, StringComparison.OrdinalIgnoreCase));
+    }
 
     public PublishingHistoryEntry Record(
         string source,
@@ -29,18 +34,21 @@ public sealed class PublishingHistoryService
         string? queuedPostId = null,
         string? error = null)
     {
-        var items = Load().ToList();
-        var entry = new PublishingHistoryEntry(
-            Guid.NewGuid().ToString("N"),
-            source,
-            queuedPostId,
-            state,
-            providerResults.ToArray(),
-            Sanitize(error),
-            DateTimeOffset.UtcNow);
-        items.Add(entry);
-        Save(items);
-        return entry;
+        lock (_gate)
+        {
+            var items = Load().ToList();
+            var entry = new PublishingHistoryEntry(
+                Guid.NewGuid().ToString("N"),
+                source,
+                queuedPostId,
+                state,
+                providerResults.ToArray(),
+                Sanitize(error),
+                DateTimeOffset.UtcNow);
+            items.Add(entry);
+            Save(items);
+            return entry;
+        }
     }
 
     private IReadOnlyList<PublishingHistoryEntry> Load()
@@ -61,7 +69,9 @@ public sealed class PublishingHistoryService
     {
         var directory = Path.GetDirectoryName(_path);
         if (!string.IsNullOrWhiteSpace(directory)) Directory.CreateDirectory(directory);
-        File.WriteAllText(_path, JsonSerializer.Serialize(items, _json));
+        var tempPath = _path + ".tmp";
+        File.WriteAllText(tempPath, JsonSerializer.Serialize(items, _json));
+        File.Move(tempPath, _path, true);
     }
 
     private static string? Sanitize(string? value)
