@@ -153,7 +153,14 @@ public partial class MainWindow : Window
         else _draft.Networks.Remove(provider);
     }
 
-    private void YouTubeUploadProgress(long sent, long total)\n    {\n        if (total <= 0) return;\n        var percent = Math.Clamp((int)(sent * 100L / total), 0, 100);\n        Dispatcher.BeginInvoke(() => PublishStatusText.Text = $"Uploading to YouTube… {percent}%");\n    }\n\n    private async void PostNow(object sender, RoutedEventArgs e)
+    private void YouTubeUploadProgress(long sent, long total)
+    {
+        if (total <= 0) return;
+        var percent = Math.Clamp((int)(sent * 100L / total), 0, 100);
+        Dispatcher.BeginInvoke(() => PublishStatusText.Text = $"Uploading to YouTube… {percent}%");
+    }
+
+    private async void PostNow(object sender, RoutedEventArgs e)
     {
         _draft.Title = TitleBox.Text.Trim();
         _draft.Caption = CaptionBox.Text.Trim();
