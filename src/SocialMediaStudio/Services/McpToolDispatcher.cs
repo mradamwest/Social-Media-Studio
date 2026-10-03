@@ -19,6 +19,7 @@ public sealed class McpToolDispatcher
             object result = toolName switch
             {
                 "list_queued_posts" => _tools.ListQueuedPosts(),
+                "list_publishing_history" => _tools.ListPublishingHistory(),
                 "get_post_status" => _tools.GetPublishingStatus(RequiredString(arguments, "id"))
                     ?? throw new KeyNotFoundException("Publishing status was not found."),
                 "create_post" => _tools.CreateDraft(
@@ -30,6 +31,13 @@ public sealed class McpToolDispatcher
                     OptionalString(arguments, "caption"),
                     RequiredStrings(arguments, "networks"),
                     RequiredDateTimeOffset(arguments, "scheduledFor"),
+                    OptionalString(arguments, "title"),
+                    OptionalStrings(arguments, "mediaFiles")),
+                "edit_post" => _tools.EditQueuedPost(
+                    RequiredString(arguments, "id"),
+                    OptionalString(arguments, "caption"),
+                    RequiredStrings(arguments, "networks"),
+                    OptionalDateTimeOffset(arguments, "scheduledFor"),
                     OptionalString(arguments, "title"),
                     OptionalStrings(arguments, "mediaFiles")),
                 "delete_post" => new { deleted = _tools.DeleteQueuedPost(RequiredString(arguments, "id")) },
@@ -96,6 +104,15 @@ public sealed class McpToolDispatcher
             .Where(x => !string.IsNullOrWhiteSpace(x))
             .Cast<string>()
             .ToArray();
+    }
+
+    private static DateTimeOffset? OptionalDateTimeOffset(JsonElement args, string name)
+    {
+        var raw = OptionalString(args, name);
+        if (raw is null) return null;
+        return DateTimeOffset.TryParse(raw, out var value)
+            ? value
+            : throw new ArgumentException($"{name} must be an ISO 8601 date-time.");
     }
 
     private static DateTimeOffset RequiredDateTimeOffset(JsonElement args, string name)
