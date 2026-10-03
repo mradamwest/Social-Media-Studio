@@ -35,6 +35,7 @@ public partial class App : Application
             new FacebookPublisher(tokens), new InstagramPublisher(tokens), new YouTubePublisher(tokens)
         });
         var executor = new ScheduledPostExecutor(new PostQueueService(), new AutomationPublishingService(coordinator));
+        executor.ResetInterruptedItems();
         _schedulerCancellation = new CancellationTokenSource();
         var cancellation = _schedulerCancellation;
         _ = Task.Run(async () =>
