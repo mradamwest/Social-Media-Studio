@@ -35,7 +35,8 @@ public partial class App : Application
             new XPublisher(tokens),
             new ThreadsPublisher(tokens),
             new FacebookPublisher(tokens),
-            new InstagramPublisher(tokens)
+            new InstagramPublisher(tokens),
+            new YouTubePublisher(tokens)
         });
 
         var tools = new McpToolService(
