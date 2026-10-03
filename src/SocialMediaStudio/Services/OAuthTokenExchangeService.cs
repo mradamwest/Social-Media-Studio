@@ -40,8 +40,7 @@ public sealed class OAuthTokenExchangeService
 
         var body = await response.Content.ReadAsStringAsync(cancellationToken);
         if (!response.IsSuccessStatusCode)
-            throw new InvalidOperationException(
-                $"Token exchange failed ({(int)response.StatusCode}). {body}");
+            throw new InvalidOperationException(TokenError("connection", response.StatusCode));
 
         using var json = JsonDocument.Parse(body);
         var root = json.RootElement;
