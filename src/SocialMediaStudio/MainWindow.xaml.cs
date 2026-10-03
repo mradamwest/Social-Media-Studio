@@ -66,6 +66,14 @@ public partial class MainWindow : Window
         AnalyticsView.Visibility = Visibility.Collapsed;
     }
 
+    private void RefreshAnalytics(object sender, RoutedEventArgs e)
+    {
+        var posts = _postQueue.List();
+        AnalyticsPublished.Text = posts.Count(x => x.State == PublishState.Published).ToString();
+        AnalyticsScheduled.Text = posts.Count(x => x.State == PublishState.Scheduled).ToString();
+        AnalyticsFailed.Text = posts.Count(x => x.State is PublishState.Failed or PublishState.NeedsAttention).ToString();
+    }
+
     private void ShowAnalytics(object sender, RoutedEventArgs e)
     {
         var posts = _postQueue.List();
