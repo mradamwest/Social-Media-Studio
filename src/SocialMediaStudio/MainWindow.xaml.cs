@@ -35,6 +35,29 @@ public partial class MainWindow : Window
         AccountsList.Items.Refresh();
     }
 
+    private void ResetComposer()
+    {
+        _editingQueuedPostId = null;
+        TitleBox.Clear();
+        CaptionBox.Clear();
+        _draft.MediaFiles.Clear();
+        _draft.Networks.Clear();
+        _draft.ScheduledFor = null;
+        _draft.State = PublishState.Draft;
+        SetPlatformChecks(Array.Empty<string>());
+        MediaDropText.Text = "Drag & drop video or images here\
+or click to browse";
+        ScheduleDatePicker.SelectedDate = DateTime.Today.AddDays(1);
+        ScheduleTimeBox.Text = "6:00 PM";
+        PublishStatusText.Text = "Ready for a new post.";
+    }
+
+    private void NewPost(object sender, RoutedEventArgs e)
+    {
+        ResetComposer();
+        ShowCreatePost(sender, e);
+    }
+
     private void ShowCreatePost(object sender, RoutedEventArgs e)
     {
         CreatePostView.Visibility = Visibility.Visible;
