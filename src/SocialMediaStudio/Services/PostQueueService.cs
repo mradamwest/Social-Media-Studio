@@ -100,9 +100,9 @@ public sealed class PostQueueService
             scheduledFor is null ? PublishState.Draft : PublishState.Scheduled,
             createdAt);
 
-    private static void Validate(AutomationPostRequest request, DateTimeOffset? scheduledFor)
+    private static void Validate(AutomationPostRequest request, DateTimeOffset? scheduledFor, bool allowIncompleteDraft)
     {
-        if (request.Networks is null || request.Networks.Count == 0)
+        if (!allowIncompleteDraft && (request.Networks is null || request.Networks.Count == 0))
             throw new ArgumentException("At least one social network must be selected.", nameof(request));
 
         if (string.IsNullOrWhiteSpace(request.Caption) &&
