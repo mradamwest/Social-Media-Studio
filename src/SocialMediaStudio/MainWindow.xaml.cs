@@ -17,6 +17,7 @@ public partial class MainWindow : Window
     private readonly AccountStateService _accountStates;
     private readonly PostDraft _draft = new();
     private readonly PublishingCoordinator _publishing;
+    private readonly PostQueueService _postQueue = new();
 
     public ObservableCollection<SocialAccount> Accounts { get; } =
         new(ProviderCatalog.Providers.Select(p => new SocialAccount { Provider = p }));
@@ -231,6 +232,12 @@ public partial class MainWindow : Window
         _draft.State = PublishState.Scheduled;
         PublishStatusText.Text = $"Scheduled for {_draft.ScheduledFor:MMM d, h:mm tt}. Planner time editing is coming next.";
     }
+
+    private AutomationPostRequest CurrentPostRequest() => new(
+        CaptionBox.Text.Trim(),
+        _draft.Networks.ToArray(),
+        string.IsNullOrWhiteSpace(TitleBox.Text) ? null : TitleBox.Text.Trim(),
+        _draft.MediaFiles.ToArray());
 
     private void DisconnectAccount(object sender, RoutedEventArgs e)
     {
