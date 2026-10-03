@@ -27,6 +27,8 @@ public sealed class XPublisher : ISocialPublisher
             throw new InvalidOperationException("X posts require text.");
         if (draft.Caption.Length > 280)
             throw new InvalidOperationException("X post text exceeds 280 characters.");
+        if (draft.MediaFiles.Count > 0)
+            throw new InvalidOperationException("X media upload is not enabled yet; remove media or publish a text-only post.");
         return Task.CompletedTask;
     }
 
@@ -39,6 +41,13 @@ public sealed class XPublisher : ISocialPublisher
         using var response = await _http.PostAsJsonAsync("https://api.x.com/2/tweets",
             new { text = draft.Caption }, cancellationToken);
         if (!response.IsSuccessStatusCode)
-            throw new InvalidOperationException($"X publish failed ({(int)response.StatusCode}).");
+            throw new InvalidOperationException(XError(response.StatusCode));
     }
+    private static string XError(System.Net.HttpStatusCode status) => status switch
+    {
+        System.Net.HttpStatusCode.Unauthorized => "X authorization expired. Reconnect the X account.",
+        System.Net.HttpStatusCode.Forbidden => "X refused the post. Check app write permissions and account access.",
+        System.Net.HttpStatusCode.TooManyRequests => "X rate limit reached. Wait before posting again.",
+        _ => $"X publish failed ({(int)status})."
+    };
 }
