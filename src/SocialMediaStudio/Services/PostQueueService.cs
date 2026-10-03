@@ -12,6 +12,7 @@ public sealed class PostQueueService
 {
     private readonly string _path;
     private readonly JsonSerializerOptions _json = new() { WriteIndented = true };
+    private readonly object _gate = new();
 
     public PostQueueService(string? path = null)
     {
@@ -20,21 +21,26 @@ public sealed class PostQueueService
             "SocialMediaStudio", "post-queue.json");
     }
 
-    public IReadOnlyList<QueuedPost> List() => Load();
+    public IReadOnlyList<QueuedPost> List() { lock (_gate) return Load(); }
 
-    public QueuedPost? Get(string id) =>
-        Load().FirstOrDefault(x => string.Equals(x.Id, id, StringComparison.OrdinalIgnoreCase));
+    public QueuedPost? Get(string id)
+    {
+        lock (_gate) return Load().FirstOrDefault(x => string.Equals(x.Id, id, StringComparison.OrdinalIgnoreCase));
+    }
 
     public QueuedPost Create(AutomationPostRequest request, DateTimeOffset? scheduledFor = null)
     {
         ArgumentNullException.ThrowIfNull(request);
         Validate(request, scheduledFor);
 
-        var items = Load().ToList();
-        var item = Build(Guid.NewGuid().ToString("N"), request, scheduledFor, DateTimeOffset.UtcNow);
-        items.Add(item);
-        Save(items);
-        return item;
+        lock (_gate)
+        {
+            var items = Load().ToList();
+            var item = Build(Guid.NewGuid().ToString("N"), request, scheduledFor, DateTimeOffset.UtcNow);
+            items.Add(item);
+            Save(items);
+            return item;
+        }
     }
 
     public QueuedPost Update(string id, AutomationPostRequest request, DateTimeOffset? scheduledFor = null)
@@ -43,35 +49,44 @@ public sealed class PostQueueService
         ArgumentNullException.ThrowIfNull(request);
         Validate(request, scheduledFor);
 
-        var items = Load().ToList();
-        var index = items.FindIndex(x => string.Equals(x.Id, id, StringComparison.OrdinalIgnoreCase));
-        if (index < 0) throw new KeyNotFoundException("Queued post was not found.");
-        if (items[index].State is PublishState.Publishing or PublishState.Published)
-            throw new InvalidOperationException("A publishing or published post cannot be edited.");
-
-        var existing = items[index];
-        items[index] = Build(existing.Id, request, scheduledFor, existing.CreatedAt);
-        Save(items);
-        return items[index];
+        lock (_gate)
+        {
+            var items = Load().ToList();
+            var index = items.FindIndex(x => string.Equals(x.Id, id, StringComparison.OrdinalIgnoreCase));
+            if (index < 0) throw new KeyNotFoundException("Queued post was not found.");
+            if (items[index].State is PublishState.Publishing or PublishState.Published)
+                throw new InvalidOperationException("A publishing or published post cannot be edited.");
+    
+            var existing = items[index];
+            items[index] = Build(existing.Id, request, scheduledFor, existing.CreatedAt);
+            Save(items);
+            return items[index];
+        }
     }
 
     public QueuedPost SetState(string id, PublishState state)
     {
         if (string.IsNullOrWhiteSpace(id)) throw new ArgumentException("Post ID is required.", nameof(id));
-        var items = Load().ToList();
-        var index = items.FindIndex(x => string.Equals(x.Id, id, StringComparison.OrdinalIgnoreCase));
-        if (index < 0) throw new KeyNotFoundException("Queued post was not found.");
-        items[index] = items[index] with { State = state };
-        Save(items);
-        return items[index];
+        lock (_gate)
+        {
+            var items = Load().ToList();
+            var index = items.FindIndex(x => string.Equals(x.Id, id, StringComparison.OrdinalIgnoreCase));
+            if (index < 0) throw new KeyNotFoundException("Queued post was not found.");
+            items[index] = items[index] with { State = state };
+            Save(items);
+            return items[index];
+        }
     }
 
     public bool Delete(string id)
     {
-        var items = Load().ToList();
-        var removed = items.RemoveAll(x => string.Equals(x.Id, id, StringComparison.OrdinalIgnoreCase)) > 0;
-        if (removed) Save(items);
-        return removed;
+        lock (_gate)
+        {
+            var items = Load().ToList();
+            var removed = items.RemoveAll(x => string.Equals(x.Id, id, StringComparison.OrdinalIgnoreCase)) > 0;
+            if (removed) Save(items);
+            return removed;
+        }
     }
 
     private static QueuedPost Build(string id, AutomationPostRequest request, DateTimeOffset? scheduledFor, DateTimeOffset createdAt) =>
@@ -116,7 +131,9 @@ public sealed class PostQueueService
     {
         var directory = Path.GetDirectoryName(_path);
         if (!string.IsNullOrWhiteSpace(directory)) Directory.CreateDirectory(directory);
-        File.WriteAllText(_path, JsonSerializer.Serialize(items, _json));
+        var tempPath = _path + ".tmp";
+        File.WriteAllText(tempPath, JsonSerializer.Serialize(items, _json));
+        File.Move(tempPath, _path, true);
     }
 }
 
