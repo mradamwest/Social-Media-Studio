@@ -64,4 +64,43 @@ public sealed class OAuthTokenExchangeService
 
         return new OAuthTokenResult(accessToken, refreshToken, expiresAt);
     }
+    public async Task<OAuthTokenResult> RefreshAsync(
+        OAuthProviderSettings settings,
+        string refreshToken,
+        string? clientSecret = null,
+        CancellationToken cancellationToken = default)
+    {
+        var values = new Dictionary<string, string>
+        {
+            ["grant_type"] = "refresh_token",
+            ["client_id"] = settings.ClientId,
+            ["refresh_token"] = refreshToken
+        };
+        if (!string.IsNullOrWhiteSpace(clientSecret))
+            values["client_secret"] = clientSecret;
+
+        using var response = await _httpClient.PostAsync(
+            settings.TokenEndpoint, new FormUrlEncodedContent(values), cancellationToken);
+        var body = await response.Content.ReadAsStringAsync(cancellationToken);
+        if (!response.IsSuccessStatusCode)
+            throw new InvalidOperationException($"Token refresh failed ({(int)response.StatusCode}).");
+
+        using var json = JsonDocument.Parse(body);
+        var root = json.RootElement;
+        if (!root.TryGetProperty("access_token", out var accessTokenElement) ||
+            string.IsNullOrWhiteSpace(accessTokenElement.GetString()))
+            throw new InvalidOperationException("Provider refresh response did not contain an access token.");
+
+        var accessToken = accessTokenElement.GetString()!;
+        var returnedRefresh = root.TryGetProperty("refresh_token", out var refreshElement)
+            ? refreshElement.GetString()
+            : null;
+        DateTimeOffset? expiresAt = null;
+        if (root.TryGetProperty("expires_in", out var expiresElement) &&
+            expiresElement.TryGetInt32(out var seconds))
+            expiresAt = DateTimeOffset.UtcNow.AddSeconds(seconds);
+
+        return new OAuthTokenResult(accessToken, returnedRefresh ?? refreshToken, expiresAt);
+    }
+
 }
