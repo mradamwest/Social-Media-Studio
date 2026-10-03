@@ -1,5 +1,6 @@
 using System.Diagnostics;
 using System.Net;
+using System.Security.Cryptography;
 using System.Text;
 
 namespace SocialMediaStudio.Services;
@@ -15,7 +16,8 @@ public sealed record OAuthProviderSettings(
 public sealed record OAuthAuthorizationResult(
     string Code,
     string? State,
-    string RedirectUri);
+    string RedirectUri,
+    string CodeVerifier);
 
 public sealed class OAuthConnectionService
 {
@@ -23,7 +25,9 @@ public sealed class OAuthConnectionService
         OAuthProviderSettings settings,
         CancellationToken cancellationToken = default)
     {
-        var state = Convert.ToHexString(Guid.NewGuid().ToByteArray());
+        var state = Convert.ToHexString(RandomNumberGenerator.GetBytes(32));
+        var codeVerifier = Base64Url(RandomNumberGenerator.GetBytes(64));
+        var codeChallenge = Base64Url(SHA256.HashData(Encoding.ASCII.GetBytes(codeVerifier)));
         var port = GetFreePort();
         var redirectUri = $"http://127.0.0.1:{port}{settings.RedirectPath}";
         var authorizationUrl =
@@ -31,7 +35,9 @@ public sealed class OAuthConnectionService
             $"&client_id={Uri.EscapeDataString(settings.ClientId)}" +
             $"&redirect_uri={Uri.EscapeDataString(redirectUri)}" +
             $"&scope={Uri.EscapeDataString(settings.Scope)}" +
-            $"&state={Uri.EscapeDataString(state)}";
+            $"&state={Uri.EscapeDataString(state)}" +
+            $"&code_challenge={Uri.EscapeDataString(codeChallenge)}" +
+            "&code_challenge_method=S256";
 
         using var listener = new HttpListener();
         listener.Prefixes.Add(redirectUri);
@@ -55,8 +61,11 @@ public sealed class OAuthConnectionService
         if (!string.Equals(state, returnedState, StringComparison.Ordinal))
             throw new InvalidOperationException("OAuth state validation failed.");
 
-        return new OAuthAuthorizationResult(code, returnedState, redirectUri);
+        return new OAuthAuthorizationResult(code, returnedState, redirectUri, codeVerifier);
     }
+
+    private static string Base64Url(byte[] bytes) =>
+        Convert.ToBase64String(bytes).TrimEnd('=').Replace('+', '-').Replace('/', '_');
 
     private static int GetFreePort()
     {
