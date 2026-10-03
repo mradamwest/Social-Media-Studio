@@ -37,11 +37,22 @@ public sealed class PublishingCoordinator
             }
             catch (Exception ex)
             {
-                results.Add(new PublishResult(provider, false, Sanitize(ex.Message)));
+                results.Add(new PublishResult(provider, false, SafeError(provider, ex)));
             }
         }
 
         return results;
+    }
+
+    private static string SafeError(string provider, Exception ex)
+    {
+        var message = ex.Message;
+        if (message.Contains("access_token", StringComparison.OrdinalIgnoreCase) ||
+            message.Contains("refresh_token", StringComparison.OrdinalIgnoreCase) ||
+            message.Contains("client_secret", StringComparison.OrdinalIgnoreCase) ||
+            message.Contains("authorization:", StringComparison.OrdinalIgnoreCase))
+            return $"{provider} publishing failed. Reconnect the account and try again.";
+        return Sanitize(message);
     }
 
     private static string Sanitize(string message)
