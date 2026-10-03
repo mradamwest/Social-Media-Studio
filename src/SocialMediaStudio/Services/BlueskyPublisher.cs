@@ -1,3 +1,4 @@
+using System.Net.Http;
 using System.Net.Http.Headers;
 using System.Net.Http.Json;
 using System.Text.Json;
@@ -23,13 +24,13 @@ public sealed class BlueskyPublisher : ISocialPublisher
         return Task.CompletedTask;
     }
 
-    public Task<string?> ValidateAsync(PostDraft draft, CancellationToken cancellationToken = default)
+    public Task ValidateAsync(PostDraft draft, CancellationToken cancellationToken = default)
     {
         if (string.IsNullOrWhiteSpace(draft.Caption))
-            return Task.FromResult<string?>("Bluesky posts require text.");
+            throw new InvalidOperationException("Bluesky posts require text.");
         if (draft.Caption.Length > 300)
-            return Task.FromResult<string?>("Bluesky post text exceeds 300 characters.");
-        return Task.FromResult<string?>(null);
+            throw new InvalidOperationException("Bluesky post text exceeds 300 characters.");
+        return Task.CompletedTask;
     }
 
     public async Task PublishAsync(PostDraft draft, CancellationToken cancellationToken = default)
@@ -37,8 +38,7 @@ public sealed class BlueskyPublisher : ISocialPublisher
         var token = _tokens.LoadOAuth(Provider)
             ?? throw new InvalidOperationException("Bluesky is not connected.");
 
-        var validation = await ValidateAsync(draft, cancellationToken);
-        if (validation is not null) throw new InvalidOperationException(validation);
+        await ValidateAsync(draft, cancellationToken);
 
         _http.DefaultRequestHeaders.Authorization =
             new AuthenticationHeaderValue("Bearer", token.AccessToken);
