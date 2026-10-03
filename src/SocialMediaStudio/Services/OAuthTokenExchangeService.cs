@@ -102,4 +102,13 @@ public sealed class OAuthTokenExchangeService
         return new OAuthTokenResult(accessToken, returnedRefresh ?? refreshToken, expiresAt);
     }
 
+    private static string TokenError(string operation, System.Net.HttpStatusCode status) =>
+        status switch
+        {
+            System.Net.HttpStatusCode.BadRequest => $"Account {operation} was rejected. Check the app/client ID, redirect URI, and authorization settings.",
+            System.Net.HttpStatusCode.Unauthorized => $"Account {operation} was not authorized. Check the app credentials and reconnect.",
+            System.Net.HttpStatusCode.Forbidden => $"Account {operation} was refused by the provider. Check the app permissions and enabled APIs.",
+            _ => $"Account {operation} failed ({(int)status})."
+        };
+
 }
