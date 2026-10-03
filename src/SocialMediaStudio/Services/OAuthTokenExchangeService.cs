@@ -17,6 +17,7 @@ public sealed class OAuthTokenExchangeService
         string code,
         string redirectUri,
         string? clientSecret = null,
+        string? codeVerifier = null,
         CancellationToken cancellationToken = default)
     {
         var values = new Dictionary<string, string>
@@ -29,6 +30,8 @@ public sealed class OAuthTokenExchangeService
 
         if (!string.IsNullOrWhiteSpace(clientSecret))
             values["client_secret"] = clientSecret;
+        if (!string.IsNullOrWhiteSpace(codeVerifier))
+            values["code_verifier"] = codeVerifier;
 
         using var response = await _httpClient.PostAsync(
             settings.TokenEndpoint,
