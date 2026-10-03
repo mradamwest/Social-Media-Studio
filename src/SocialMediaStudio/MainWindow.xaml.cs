@@ -52,6 +52,21 @@ public partial class MainWindow : Window
         MediaLibraryView.Visibility = Visibility.Visible;
     }
 
+    private void UseLibraryMedia(object sender, RoutedEventArgs e)
+    {
+        if (sender is not Button button || button.Tag is not string path || !File.Exists(path))
+        {
+            MessageBox.Show("That media file is no longer available.", "Media Library", MessageBoxButton.OK, MessageBoxImage.Information);
+            return;
+        }
+        SetMediaFiles(new[] { path });
+        CreatePostView.Visibility = Visibility.Visible;
+        PlannerView.Visibility = Visibility.Collapsed;
+        MediaLibraryView.Visibility = Visibility.Collapsed;
+        AccountsView.Visibility = Visibility.Collapsed;
+        PublishStatusText.Text = "Media loaded from library.";
+    }
+
     private void ShowPlanner(object sender, RoutedEventArgs e)
     {
         PlannerList.ItemsSource = _postQueue.List().OrderBy(x => x.ScheduledFor ?? x.CreatedAt).ToArray();
