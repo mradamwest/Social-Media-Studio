@@ -63,6 +63,7 @@ public partial class MainWindow : Window
         AccountsView.Visibility = Visibility.Collapsed;
         PlannerView.Visibility = Visibility.Collapsed;
         MediaLibraryView.Visibility = Visibility.Collapsed;
+        AnalyticsView.Visibility = Visibility.Collapsed;
     }
 
     private void ShowAnalytics(object sender, RoutedEventArgs e)
@@ -85,6 +86,7 @@ public partial class MainWindow : Window
         PlannerView.Visibility = Visibility.Collapsed;
         AccountsView.Visibility = Visibility.Collapsed;
         MediaLibraryView.Visibility = Visibility.Visible;
+        AnalyticsView.Visibility = Visibility.Collapsed;
     }
 
     private void UseLibraryMedia(object sender, RoutedEventArgs e)
@@ -108,6 +110,8 @@ public partial class MainWindow : Window
         CreatePostView.Visibility = Visibility.Collapsed;
         AccountsView.Visibility = Visibility.Collapsed;
         PlannerView.Visibility = Visibility.Visible;
+        MediaLibraryView.Visibility = Visibility.Collapsed;
+        AnalyticsView.Visibility = Visibility.Collapsed;
     }
 
     private void RefreshPlanner(object sender, RoutedEventArgs e)
@@ -121,6 +125,9 @@ public partial class MainWindow : Window
         AccountsList.Items.Refresh();
         CreatePostView.Visibility = Visibility.Collapsed;
         AccountsView.Visibility = Visibility.Visible;
+        PlannerView.Visibility = Visibility.Collapsed;
+        MediaLibraryView.Visibility = Visibility.Collapsed;
+        AnalyticsView.Visibility = Visibility.Collapsed;
     }
 
     private async void ConnectAccount(object sender, RoutedEventArgs e)
