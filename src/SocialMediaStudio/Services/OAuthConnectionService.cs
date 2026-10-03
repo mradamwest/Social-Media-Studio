@@ -12,7 +12,10 @@ public sealed record OAuthProviderSettings(
     string Scope,
     string RedirectPath = "/callback/");
 
-public sealed record OAuthAuthorizationResult(string Code, string? State);
+public sealed record OAuthAuthorizationResult(
+    string Code,
+    string? State,
+    string RedirectUri);
 
 public sealed class OAuthConnectionService
 {
@@ -33,7 +36,6 @@ public sealed class OAuthConnectionService
         using var listener = new HttpListener();
         listener.Prefixes.Add(redirectUri);
         listener.Start();
-
         Process.Start(new ProcessStartInfo(authorizationUrl) { UseShellExecute = true });
 
         using var registration = cancellationToken.Register(listener.Stop);
@@ -53,7 +55,7 @@ public sealed class OAuthConnectionService
         if (!string.Equals(state, returnedState, StringComparison.Ordinal))
             throw new InvalidOperationException("OAuth state validation failed.");
 
-        return new OAuthAuthorizationResult(code, returnedState);
+        return new OAuthAuthorizationResult(code, returnedState, redirectUri);
     }
 
     private static int GetFreePort()
