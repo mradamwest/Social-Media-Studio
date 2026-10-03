@@ -9,10 +9,12 @@ namespace SocialMediaStudio.Services;
 public sealed class McpToolService
 {
     private readonly AutomationPublishingService _automation;
+    private readonly PostQueueService _queue;
 
-    public McpToolService(AutomationPublishingService automation)
+    public McpToolService(AutomationPublishingService automation, PostQueueService queue)
     {
         _automation = automation;
+        _queue = queue;
     }
 
     public Task<IReadOnlyList<PublishResult>> PublishNowAsync(
@@ -24,6 +26,35 @@ public sealed class McpToolService
     {
         var request = new AutomationPostRequest(caption, networks, title, mediaFiles);
         return _automation.PublishNowAsync(request, cancellationToken);
+    }
+
+    public QueuedPost CreateDraft(
+        string? caption,
+        IReadOnlyList<string> networks,
+        string? title = null,
+        IReadOnlyList<string>? mediaFiles = null)
+    {
+        return _queue.Create(new AutomationPostRequest(caption, networks, title, mediaFiles));
+    }
+
+    public QueuedPost SchedulePost(
+        string? caption,
+        IReadOnlyList<string> networks,
+        DateTimeOffset scheduledFor,
+        string? title = null,
+        IReadOnlyList<string>? mediaFiles = null)
+    {
+        return _queue.Create(
+            new AutomationPostRequest(caption, networks, title, mediaFiles),
+            scheduledFor);
+    }
+
+    public IReadOnlyList<QueuedPost> ListQueuedPosts() => _queue.List();
+
+    public bool DeleteQueuedPost(string id)
+    {
+        if (string.IsNullOrWhiteSpace(id)) return false;
+        return _queue.Delete(id.Trim());
     }
 
     public static IReadOnlyList<McpAccountStatus> ListConnectedAccounts(
