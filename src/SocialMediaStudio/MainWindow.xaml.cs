@@ -45,8 +45,7 @@ public partial class MainWindow : Window
         _draft.ScheduledFor = null;
         _draft.State = PublishState.Draft;
         SetPlatformChecks(Array.Empty<string>());
-        MediaDropText.Text = "Drag & drop video or images here\
-or click to browse";
+        MediaDropText.Text = "Drag & drop video or images here" + Environment.NewLine + "or click to browse";
         ScheduleDatePicker.SelectedDate = DateTime.Today.AddDays(1);
         ScheduleTimeBox.Text = "6:00 PM";
         PublishStatusText.Text = "Ready for a new post.";
