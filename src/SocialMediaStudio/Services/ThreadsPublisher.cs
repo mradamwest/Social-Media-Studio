@@ -23,8 +23,12 @@ public sealed class ThreadsPublisher : ISocialPublisher
 
     public Task ValidateAsync(PostDraft draft, CancellationToken cancellationToken = default)
     {
-        if (string.IsNullOrWhiteSpace(draft.Caption))
-            throw new InvalidOperationException("Threads posts require text.");
+        if (string.IsNullOrWhiteSpace(draft.Caption) && draft.MediaFiles.Count == 0)
+            throw new InvalidOperationException("Threads posts require text or media.");
+        if (draft.MediaFiles.Count > 1)
+            throw new InvalidOperationException("Threads currently supports one media item per post.");
+        if (draft.MediaFiles.Count == 1 && (!Uri.TryCreate(draft.MediaFiles[0], UriKind.Absolute, out var uri) || uri.Scheme != Uri.UriSchemeHttps))
+            throw new InvalidOperationException("Threads media currently requires a publicly reachable HTTPS URL.");
         return Task.CompletedTask;
     }
 
@@ -35,11 +39,17 @@ public sealed class ThreadsPublisher : ISocialPublisher
             ?? throw new InvalidOperationException("Threads is not connected.");
         _http.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", token.AccessToken);
 
-        using var create = new FormUrlEncodedContent(new Dictionary<string,string>
+        var createValues = new Dictionary<string,string> { ["text"] = draft.Caption };
+        if (draft.MediaFiles.Count == 0) createValues["media_type"] = "TEXT";
+        else
         {
-            ["media_type"] = "TEXT",
-            ["text"] = draft.Caption
-        });
+            var mediaUrl = draft.MediaFiles[0];
+            var path = new Uri(mediaUrl).AbsolutePath;
+            var isVideo = path.EndsWith(".mp4", StringComparison.OrdinalIgnoreCase) || path.EndsWith(".mov", StringComparison.OrdinalIgnoreCase) || path.EndsWith(".m4v", StringComparison.OrdinalIgnoreCase);
+            createValues["media_type"] = isVideo ? "VIDEO" : "IMAGE";
+            createValues[isVideo ? "video_url" : "image_url"] = mediaUrl;
+        }
+        using var create = new FormUrlEncodedContent(createValues);
         using var created = await _http.PostAsync("https://graph.threads.net/v1.0/me/threads", create, cancellationToken);
         if (!created.IsSuccessStatusCode)
             throw new InvalidOperationException($"Threads container creation failed ({(int)created.StatusCode}).");
