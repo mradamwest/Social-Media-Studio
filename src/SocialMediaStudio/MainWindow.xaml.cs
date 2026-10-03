@@ -210,6 +210,28 @@ public partial class MainWindow : Window
         finally { PostNowButton.IsEnabled = true; }
     }
 
+    private void SaveDraft(object sender, RoutedEventArgs e)
+    {
+        _draft.Title = TitleBox.Text.Trim();
+        _draft.Caption = CaptionBox.Text.Trim();
+        _draft.State = PublishState.Draft;
+        PublishStatusText.Text = "Draft saved in this session.";
+    }
+
+    private void ScheduleDraft(object sender, RoutedEventArgs e)
+    {
+        _draft.Title = TitleBox.Text.Trim();
+        _draft.Caption = CaptionBox.Text.Trim();
+        if (_draft.Networks.Count == 0)
+        {
+            MessageBox.Show("Select at least one platform before scheduling.", "Schedule", MessageBoxButton.OK, MessageBoxImage.Information);
+            return;
+        }
+        _draft.ScheduledFor = DateTimeOffset.Now.AddHours(1);
+        _draft.State = PublishState.Scheduled;
+        PublishStatusText.Text = $"Scheduled for {_draft.ScheduledFor:MMM d, h:mm tt}. Planner time editing is coming next.";
+    }
+
     private void DisconnectAccount(object sender, RoutedEventArgs e)
     {
         if (sender is not Button button || button.Tag is not string provider) return;
