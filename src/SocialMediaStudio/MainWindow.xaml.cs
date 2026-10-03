@@ -321,6 +321,7 @@ public partial class MainWindow : Window
         CaptionBox.Text = post.Caption;
         _draft.MediaFiles.Clear(); _draft.MediaFiles.AddRange(post.MediaFiles);
         _draft.Networks.Clear(); foreach (var network in post.Networks) _draft.Networks.Add(network);
+        SetPlatformChecks(post.Networks);
         MediaDropText.Text = post.MediaFiles.Count == 0 ? "No media selected." : string.Join(Environment.NewLine, post.MediaFiles.Select(Path.GetFileName));
         CreatePostView.Visibility = Visibility.Visible; PlannerView.Visibility = Visibility.Collapsed; AccountsView.Visibility = Visibility.Collapsed;
         if (post.ScheduledFor is DateTimeOffset scheduled)
