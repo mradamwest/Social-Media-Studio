@@ -36,6 +36,7 @@ public sealed class OAuthConnectionService
             $"&redirect_uri={Uri.EscapeDataString(redirectUri)}" +
             $"&scope={Uri.EscapeDataString(settings.Scope)}" +
             $"&state={Uri.EscapeDataString(state)}" +
+            (settings.Provider.Equals("YouTube", StringComparison.OrdinalIgnoreCase) ? "&access_type=offline&prompt=consent" : string.Empty) +
             $"&code_challenge={Uri.EscapeDataString(codeChallenge)}" +
             "&code_challenge_method=S256";
 
