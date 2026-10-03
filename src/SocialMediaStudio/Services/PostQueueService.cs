@@ -22,25 +22,37 @@ public sealed class PostQueueService
 
     public IReadOnlyList<QueuedPost> List() => Load();
 
+    public QueuedPost? Get(string id) =>
+        Load().FirstOrDefault(x => string.Equals(x.Id, id, StringComparison.OrdinalIgnoreCase));
+
     public QueuedPost Create(AutomationPostRequest request, DateTimeOffset? scheduledFor = null)
     {
         ArgumentNullException.ThrowIfNull(request);
         Validate(request, scheduledFor);
 
         var items = Load().ToList();
-        var item = new QueuedPost(
-            Guid.NewGuid().ToString("N"),
-            request.Caption?.Trim() ?? string.Empty,
-            string.IsNullOrWhiteSpace(request.Title) ? null : request.Title.Trim(),
-            request.Networks.Where(x => !string.IsNullOrWhiteSpace(x)).Select(x => x.Trim()).Distinct(StringComparer.OrdinalIgnoreCase).ToArray(),
-            request.MediaFiles?.Where(x => !string.IsNullOrWhiteSpace(x)).Select(x => x.Trim()).ToArray() ?? [],
-            scheduledFor,
-            scheduledFor is null ? PublishState.Draft : PublishState.Scheduled,
-            DateTimeOffset.UtcNow);
-
+        var item = Build(Guid.NewGuid().ToString("N"), request, scheduledFor, DateTimeOffset.UtcNow);
         items.Add(item);
         Save(items);
         return item;
+    }
+
+    public QueuedPost Update(string id, AutomationPostRequest request, DateTimeOffset? scheduledFor = null)
+    {
+        if (string.IsNullOrWhiteSpace(id)) throw new ArgumentException("Post ID is required.", nameof(id));
+        ArgumentNullException.ThrowIfNull(request);
+        Validate(request, scheduledFor);
+
+        var items = Load().ToList();
+        var index = items.FindIndex(x => string.Equals(x.Id, id, StringComparison.OrdinalIgnoreCase));
+        if (index < 0) throw new KeyNotFoundException("Queued post was not found.");
+        if (items[index].State is PublishState.Publishing or PublishState.Published)
+            throw new InvalidOperationException("A publishing or published post cannot be edited.");
+
+        var existing = items[index];
+        items[index] = Build(existing.Id, request, scheduledFor, existing.CreatedAt);
+        Save(items);
+        return items[index];
     }
 
     public bool Delete(string id)
@@ -50,6 +62,17 @@ public sealed class PostQueueService
         if (removed) Save(items);
         return removed;
     }
+
+    private static QueuedPost Build(string id, AutomationPostRequest request, DateTimeOffset? scheduledFor, DateTimeOffset createdAt) =>
+        new(
+            id,
+            request.Caption?.Trim() ?? string.Empty,
+            string.IsNullOrWhiteSpace(request.Title) ? null : request.Title.Trim(),
+            request.Networks.Where(x => !string.IsNullOrWhiteSpace(x)).Select(x => x.Trim()).Distinct(StringComparer.OrdinalIgnoreCase).ToArray(),
+            request.MediaFiles?.Where(x => !string.IsNullOrWhiteSpace(x)).Select(x => x.Trim()).ToArray() ?? [],
+            scheduledFor,
+            scheduledFor is null ? PublishState.Draft : PublishState.Scheduled,
+            createdAt);
 
     private static void Validate(AutomationPostRequest request, DateTimeOffset? scheduledFor)
     {
