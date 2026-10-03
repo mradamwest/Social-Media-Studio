@@ -155,6 +155,8 @@ public partial class MainWindow : Window
     {
         _draft.Title = TitleBox.Text.Trim();
         _draft.Caption = CaptionBox.Text.Trim();
+        if (YouTubePrivacyBox.SelectedItem is ComboBoxItem privacyItem && privacyItem.Tag is string privacy)
+            _draft.YouTubePrivacy = privacy;
         if (_draft.Networks.Count == 0)
         {
             MessageBox.Show("Select at least one platform.", "Post Now", MessageBoxButton.OK, MessageBoxImage.Information);
