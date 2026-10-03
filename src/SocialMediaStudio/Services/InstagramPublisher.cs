@@ -1,3 +1,4 @@
+using System.IO;
 using System.Net.Http;
 using System.Net.Http.Headers;
 using System.Text.Json;
@@ -24,10 +25,10 @@ public sealed class InstagramPublisher : ISocialPublisher
     public Task ValidateAsync(PostDraft draft, CancellationToken cancellationToken = default)
     {
         if (draft.MediaFiles.Count != 1)
-            throw new InvalidOperationException("Instagram publishing currently requires one hosted image URL.");
+            throw new InvalidOperationException("Instagram publishing requires exactly one image or video.");
         if (!Uri.TryCreate(draft.MediaFiles[0], UriKind.Absolute, out var uri) ||
             (uri.Scheme != Uri.UriSchemeHttps && uri.Scheme != Uri.UriSchemeHttp))
-            throw new InvalidOperationException("Instagram requires a publicly reachable media URL; local upload hosting is being added next.");
+            throw new InvalidOperationException("Instagram currently requires a publicly reachable media URL. Local files must be staged before publishing.");
         return Task.CompletedTask;
     }
 
@@ -52,11 +53,17 @@ public sealed class InstagramPublisher : ISocialPublisher
         }
         if (string.IsNullOrWhiteSpace(accountId))
             throw new InvalidOperationException("No connected Instagram professional account was found.");
-        using var create = new FormUrlEncodedContent(new Dictionary<string,string>
+        var mediaUri = new Uri(draft.MediaFiles[0]);
+        var isVideo = Path.GetExtension(mediaUri.AbsolutePath).Equals(".mp4", StringComparison.OrdinalIgnoreCase) ||
+                      Path.GetExtension(mediaUri.AbsolutePath).Equals(".mov", StringComparison.OrdinalIgnoreCase) ||
+                      Path.GetExtension(mediaUri.AbsolutePath).Equals(".m4v", StringComparison.OrdinalIgnoreCase);
+        var createValues = new Dictionary<string,string>
         {
-            ["image_url"] = draft.MediaFiles[0],
+            [isVideo ? "video_url" : "image_url"] = draft.MediaFiles[0],
             ["caption"] = draft.Caption
-        });
+        };
+        if (isVideo) createValues["media_type"] = "REELS";
+        using var create = new FormUrlEncodedContent(createValues);
         using var created = await _http.PostAsync($"https://graph.facebook.com/v24.0/{accountId}/media", create, cancellationToken);
         if (!created.IsSuccessStatusCode)
             throw new InvalidOperationException($"Instagram media container failed ({(int)created.StatusCode}).");
