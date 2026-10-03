@@ -1,6 +1,8 @@
 using System.Collections.ObjectModel;
 using System.Windows;
 using System.Windows.Controls;
+using Microsoft.Win32;
+using System.IO;
 using SocialMediaStudio.Models;
 using SocialMediaStudio.Services;
 
@@ -93,6 +95,38 @@ public partial class MainWindow : Window
                 MessageBoxButton.OK, MessageBoxImage.Error);
         }
         finally { button.IsEnabled = true; }
+    }
+
+    private static readonly HashSet<string> SupportedMediaExtensions = new(StringComparer.OrdinalIgnoreCase)
+    { ".jpg", ".jpeg", ".png", ".webp", ".mp4", ".mov", ".m4v" };
+
+    private void BrowseMedia(object sender, System.Windows.Input.MouseButtonEventArgs e)
+    {
+        var dialog = new OpenFileDialog
+        {
+            Multiselect = true,
+            Filter = "Media files|*.jpg;*.jpeg;*.png;*.webp;*.mp4;*.mov;*.m4v|All files|*.*"
+        };
+        if (dialog.ShowDialog() == true) SetMediaFiles(dialog.FileNames);
+    }
+
+    private void MediaDrop(object sender, DragEventArgs e)
+    {
+        if (!e.Data.GetDataPresent(DataFormats.FileDrop)) return;
+        if (e.Data.GetData(DataFormats.FileDrop) is string[] files) SetMediaFiles(files);
+    }
+
+    private void SetMediaFiles(IEnumerable<string> files)
+    {
+        var accepted = files.Where(File.Exists)
+            .Where(f => SupportedMediaExtensions.Contains(Path.GetExtension(f)))
+            .Distinct(StringComparer.OrdinalIgnoreCase).ToList();
+
+        _draft.MediaFiles.Clear();
+        _draft.MediaFiles.AddRange(accepted);
+        MediaDropText.Text = accepted.Count == 0
+            ? "No supported media selected."
+            : string.Join(Environment.NewLine, accepted.Select(Path.GetFileName));
     }
 
     private void PlatformSelectionChanged(object sender, RoutedEventArgs e)
