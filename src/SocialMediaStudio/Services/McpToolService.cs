@@ -11,12 +11,14 @@ public sealed class McpToolService
     private readonly AutomationPublishingService _automation;
     private readonly PostQueueService _queue;
     private readonly ScheduledPostExecutor _scheduler;
+    private readonly PublishingHistoryService _history;
 
     public McpToolService(AutomationPublishingService automation, PostQueueService queue)
     {
         _automation = automation;
         _queue = queue;
         _scheduler = new ScheduledPostExecutor(queue, automation);
+        _history = new PublishingHistoryService();
     }
 
     public Task<IReadOnlyList<PublishResult>> PublishNowAsync(
@@ -59,9 +61,22 @@ public sealed class McpToolService
 
     public IReadOnlyList<QueuedPost> ListQueuedPosts() => _queue.List();
 
-    public Task<IReadOnlyList<ScheduledExecutionResult>> ExecuteDuePostsAsync(
-        CancellationToken cancellationToken = default) =>
-        _scheduler.ExecuteDueAsync(cancellationToken: cancellationToken);
+    public async Task<IReadOnlyList<ScheduledExecutionResult>> ExecuteDuePostsAsync(
+        CancellationToken cancellationToken = default)
+    {
+        var results = await _scheduler.ExecuteDueAsync(cancellationToken: cancellationToken);
+        foreach (var result in results)
+            _history.Record("scheduled", result.State, result.ProviderResults, result.PostId, result.Error);
+        return results;
+    }
+
+    public IReadOnlyList<PublishingHistoryEntry> ListPublishingHistory() => _history.List();
+
+    public PublishingHistoryEntry? GetPublishingStatus(string id)
+    {
+        if (string.IsNullOrWhiteSpace(id)) return null;
+        return _history.Get(id.Trim());
+    }
 
     public bool DeleteQueuedPost(string id)
     {
