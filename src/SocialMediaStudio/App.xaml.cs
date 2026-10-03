@@ -7,19 +7,45 @@ public partial class App : Application
 {
     private CancellationTokenSource? _mcpCancellation;
     private McpHttpServer? _mcpServer;
+    private CancellationTokenSource? _schedulerCancellation;
 
     protected override void OnStartup(StartupEventArgs e)
     {
         base.OnStartup(e);
         StartMcpServerIfEnabled();
+        StartScheduledPublishing();
     }
 
     protected override void OnExit(ExitEventArgs e)
     {
+        _schedulerCancellation?.Cancel();
         _mcpCancellation?.Cancel();
         _mcpServer?.DisposeAsync().AsTask().GetAwaiter().GetResult();
         _mcpCancellation?.Dispose();
         base.OnExit(e);
+    }
+
+    private void StartScheduledPublishing()
+    {
+        var tokens = new SecureTokenStore();
+        var coordinator = new PublishingCoordinator(new ISocialPublisher[]
+        {
+            new BlueskyPublisher(tokens), new XPublisher(tokens), new ThreadsPublisher(tokens),
+            new FacebookPublisher(tokens), new InstagramPublisher(tokens), new YouTubePublisher(tokens)
+        });
+        var executor = new ScheduledPostExecutor(new PostQueueService(), new AutomationPublishingService(coordinator));
+        _schedulerCancellation = new CancellationTokenSource();
+        var cancellation = _schedulerCancellation;
+        _ = Task.Run(async () =>
+        {
+            while (!cancellation.IsCancellationRequested)
+            {
+                try { await executor.ExecuteDueAsync(cancellationToken: cancellation.Token); }
+                catch (OperationCanceledException) when (cancellation.IsCancellationRequested) { break; }
+                catch { /* keep scheduler alive; per-post failures are recorded by the executor */ }
+                await Task.Delay(TimeSpan.FromSeconds(30), cancellation.Token);
+            }
+        }, cancellation.Token);
     }
 
     private void StartMcpServerIfEnabled()
