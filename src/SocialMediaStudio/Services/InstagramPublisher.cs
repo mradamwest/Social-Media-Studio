@@ -72,6 +72,22 @@ public sealed class InstagramPublisher : ISocialPublisher
         var creationId = json.RootElement.GetProperty("id").GetString()
             ?? throw new InvalidOperationException("Instagram did not return a creation ID.");
 
+        if (isVideo)
+        {
+            for (var attempt = 0; attempt < 30; attempt++)
+            {
+                await Task.Delay(TimeSpan.FromSeconds(2), cancellationToken);
+                using var statusResponse = await _http.GetAsync($"https://graph.facebook.com/v24.0/{creationId}?fields=status_code", cancellationToken);
+                if (!statusResponse.IsSuccessStatusCode) continue;
+                using var statusJson = JsonDocument.Parse(await statusResponse.Content.ReadAsStringAsync(cancellationToken));
+                var status = statusJson.RootElement.TryGetProperty("status_code", out var statusElement) ? statusElement.GetString() : null;
+                if (string.Equals(status, "FINISHED", StringComparison.OrdinalIgnoreCase)) break;
+                if (string.Equals(status, "ERROR", StringComparison.OrdinalIgnoreCase) || string.Equals(status, "EXPIRED", StringComparison.OrdinalIgnoreCase))
+                    throw new InvalidOperationException($"Instagram video processing failed with status {status}.");
+                if (attempt == 29) throw new InvalidOperationException("Instagram video processing timed out before publishing.");
+            }
+        }
+
         using var publish = new FormUrlEncodedContent(new Dictionary<string,string> { ["creation_id"] = creationId });
         using var response = await _http.PostAsync($"https://graph.facebook.com/v24.0/{accountId}/media_publish", publish, cancellationToken);
         if (!response.IsSuccessStatusCode)
