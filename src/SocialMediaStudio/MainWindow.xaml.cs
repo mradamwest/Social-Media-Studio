@@ -13,6 +13,7 @@ public partial class MainWindow : Window
     private readonly OAuthConnectionService _oauth = new();
     private readonly OAuthTokenExchangeService _tokenExchange = new();
     private readonly SecureTokenStore _tokens = new();
+    private readonly DeveloperCredentialStore _developerCredentials = new();
     private readonly AccountStateService _accountStates;
     private readonly PostDraft _draft = new();
     private readonly PublishingCoordinator _publishing;
@@ -56,15 +57,27 @@ public partial class MainWindow : Window
             return;
         }
 
-        if (!ProviderConnectionCatalog.TryCreateSettings(provider, out var settings) || settings is null)
+        var definition = ProviderConnectionCatalog.Definitions[provider];
+        var storedCredential = _developerCredentials.Load(provider);
+        var clientId = storedCredential?.ClientId
+            ?? Environment.GetEnvironmentVariable(definition.ClientIdSetting);
+
+        if (string.IsNullOrWhiteSpace(clientId))
         {
-            var definition = ProviderConnectionCatalog.Definitions[provider];
-            MessageBox.Show(
-                $"Set {definition.ClientIdSetting} with your developer app ID before connecting {provider}. " +
-                "Secrets are never hardcoded in Social Media Studio.",
-                $"{provider} setup required", MessageBoxButton.OK, MessageBoxImage.Information);
-            return;
+            var setup = new CredentialSetupWindow(provider) { Owner = this };
+            if (setup.ShowDialog() != true) return;
+
+            _developerCredentials.Save(provider, setup.ClientId, setup.ClientSecret);
+            storedCredential = _developerCredentials.Load(provider);
+            clientId = storedCredential!.ClientId;
         }
+
+        var settings = new OAuthProviderSettings(
+            definition.Provider,
+            clientId,
+            definition.AuthorizationEndpoint,
+            definition.TokenEndpoint,
+            definition.Scope);
 
         try
         {
@@ -74,7 +87,8 @@ public partial class MainWindow : Window
 
             var authorization = await _oauth.AuthorizeAsync(settings);
             var secretSetting = $"SOCIAL_MEDIA_STUDIO_{provider.ToUpperInvariant()}_APP_SECRET";
-            var clientSecret = Environment.GetEnvironmentVariable(secretSetting);
+            var clientSecret = storedCredential?.ClientSecret
+                ?? Environment.GetEnvironmentVariable(secretSetting);
             var token = await _tokenExchange.ExchangeAsync(
                 settings, authorization.Code, authorization.RedirectUri, clientSecret);
 
