@@ -82,7 +82,7 @@ public sealed class OAuthTokenExchangeService
             settings.TokenEndpoint, new FormUrlEncodedContent(values), cancellationToken);
         var body = await response.Content.ReadAsStringAsync(cancellationToken);
         if (!response.IsSuccessStatusCode)
-            throw new InvalidOperationException($"Token refresh failed ({(int)response.StatusCode}).");
+            throw new InvalidOperationException(TokenError("token refresh", response.StatusCode));
 
         using var json = JsonDocument.Parse(body);
         var root = json.RootElement;
