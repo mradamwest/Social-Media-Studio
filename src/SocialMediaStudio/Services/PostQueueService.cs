@@ -95,7 +95,7 @@ public sealed class PostQueueService
             id,
             request.Caption?.Trim() ?? string.Empty,
             string.IsNullOrWhiteSpace(request.Title) ? null : request.Title.Trim(),
-            request.Networks.Where(x => !string.IsNullOrWhiteSpace(x)).Select(x => x.Trim()).Distinct(StringComparer.OrdinalIgnoreCase).ToArray(),
+            (request.Networks ?? []).Where(x => !string.IsNullOrWhiteSpace(x)).Select(x => x.Trim()).Distinct(StringComparer.OrdinalIgnoreCase).ToArray(),
             request.MediaFiles?.Where(x => !string.IsNullOrWhiteSpace(x)).Select(x => x.Trim()).ToArray() ?? [],
             scheduledFor,
             scheduledFor is null ? PublishState.Draft : PublishState.Scheduled,
