@@ -16,7 +16,7 @@ public sealed class ScheduledPostExecutor
         _automation = automation;
     }
 
-    public async Task<IReadOnlyList<ScheduledExecutionResult>> ExecuteDueAsync(
+    public void ResetInterruptedItems()\n    {\n        foreach (var item in _queue.List().Where(x => x.State == PublishState.Publishing))\n            _queue.SetState(item.Id, PublishState.Scheduled);\n    }\n\n    public async Task<IReadOnlyList<ScheduledExecutionResult>> ExecuteDueAsync(
         DateTimeOffset? now = null,
         CancellationToken cancellationToken = default)
     {
