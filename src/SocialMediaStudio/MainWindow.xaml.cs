@@ -86,9 +86,10 @@ public partial class MainWindow : Window
             button.IsEnabled = false;
 
             var authorization = await _oauth.AuthorizeAsync(settings);
-            var secretSetting = $"SOCIAL_MEDIA_STUDIO_{provider.ToUpperInvariant()}_APP_SECRET";
             var clientSecret = storedCredential?.ClientSecret
-                ?? Environment.GetEnvironmentVariable(secretSetting);
+                ?? (string.IsNullOrWhiteSpace(definition.ClientSecretSetting)
+                    ? null
+                    : Environment.GetEnvironmentVariable(definition.ClientSecretSetting));
             var token = await _tokenExchange.ExchangeAsync(
                 settings, authorization.Code, authorization.RedirectUri, clientSecret);
 
