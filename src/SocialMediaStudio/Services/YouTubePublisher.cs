@@ -89,7 +89,7 @@ public sealed class YouTubePublisher : ISocialPublisher
 
         using var initResponse = await _http.SendAsync(init, cancellationToken);
         if (!initResponse.IsSuccessStatusCode)
-            throw new InvalidOperationException($"YouTube upload initialization failed ({(int)initResponse.StatusCode}).");
+            throw new InvalidOperationException(YouTubeError("upload initialization", initResponse.StatusCode));
 
         var uploadUri = initResponse.Headers.Location
             ?? throw new InvalidOperationException("YouTube did not return an upload URL.");
@@ -103,8 +103,17 @@ public sealed class YouTubePublisher : ISocialPublisher
 
         using var response = await _http.SendAsync(upload, HttpCompletionOption.ResponseHeadersRead, cancellationToken);
         if (!response.IsSuccessStatusCode)
-            throw new InvalidOperationException($"YouTube video upload failed ({(int)response.StatusCode}).");
+            throw new InvalidOperationException(YouTubeError("video upload", response.StatusCode));
     }
+
+    private static string YouTubeError(string operation, System.Net.HttpStatusCode status) =>
+        status switch
+        {
+            System.Net.HttpStatusCode.Unauthorized => $"YouTube {operation} failed because the account authorization expired. Reconnect YouTube.",
+            System.Net.HttpStatusCode.Forbidden => $"YouTube {operation} was refused. Check YouTube API access, channel permissions, and upload quota.",
+            System.Net.HttpStatusCode.BadRequest => $"YouTube {operation} was rejected. Check the video metadata and file.",
+            _ => $"YouTube {operation} failed ({(int)status})."
+        };
 
     private static bool IsVideo(string path) =>
         Path.GetExtension(path).ToLowerInvariant() is ".mp4" or ".mov" or ".m4v";
