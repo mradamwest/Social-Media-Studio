@@ -36,6 +36,7 @@ public sealed class ScheduledPostExecutor
 
             try
             {
+                _queue.SetState(item.Id, PublishState.Publishing);
                 var request = new AutomationPostRequest(
                     item.Caption, item.Networks, item.Title, item.MediaFiles);
 
