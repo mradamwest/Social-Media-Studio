@@ -55,7 +55,7 @@ public sealed class YouTubePublisher : ISocialPublisher
             },
             status = new
             {
-                privacyStatus = "private"
+                privacyStatus = draft.YouTubePrivacy is "public" or "unlisted" ? draft.YouTubePrivacy : "private"
             }
         });
 
