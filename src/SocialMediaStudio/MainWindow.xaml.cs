@@ -170,6 +170,23 @@ public partial class MainWindow : Window
             : string.Join(Environment.NewLine, accepted.Select(Path.GetFileName));
     }
 
+    private void SetPlatformChecks(IEnumerable<string> networks)
+    {
+        var selected = new HashSet<string>(networks, StringComparer.OrdinalIgnoreCase);
+        foreach (var box in FindVisualChildren<CheckBox>(CreatePostView))
+            if (box.Tag is string provider) box.IsChecked = selected.Contains(provider);
+    }
+
+    private static IEnumerable<T> FindVisualChildren<T>(System.Windows.DependencyObject root) where T : System.Windows.DependencyObject
+    {
+        for (var i = 0; i < System.Windows.Media.VisualTreeHelper.GetChildrenCount(root); i++)
+        {
+            var child = System.Windows.Media.VisualTreeHelper.GetChild(root, i);
+            if (child is T match) yield return match;
+            foreach (var descendant in FindVisualChildren<T>(child)) yield return descendant;
+        }
+    }
+
     private void PlatformSelectionChanged(object sender, RoutedEventArgs e)
     {
         if (sender is not CheckBox box || box.Tag is not string provider) return;
