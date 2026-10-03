@@ -9,14 +9,19 @@ namespace SocialMediaStudio;
 public partial class MainWindow : Window
 {
     private readonly OAuthConnectionService _oauth = new();
+    private readonly SecureTokenStore _tokens = new();
+    private readonly AccountStateService _accountStates;
 
     public ObservableCollection<SocialAccount> Accounts { get; } =
         new(ProviderCatalog.Providers.Select(p => new SocialAccount { Provider = p }));
 
     public MainWindow()
     {
+        _accountStates = new AccountStateService(_tokens);
         InitializeComponent();
         AccountsList.ItemsSource = Accounts;
+        _accountStates.Restore(Accounts);
+        AccountsList.Items.Refresh();
     }
 
     private void ShowCreatePost(object sender, RoutedEventArgs e)
@@ -27,6 +32,8 @@ public partial class MainWindow : Window
 
     private void ShowAccounts(object sender, RoutedEventArgs e)
     {
+        _accountStates.Restore(Accounts);
+        AccountsList.Items.Refresh();
         CreatePostView.Visibility = Visibility.Collapsed;
         AccountsView.Visibility = Visibility.Visible;
     }
@@ -58,12 +65,10 @@ public partial class MainWindow : Window
             account.State = ConnectionState.Connecting;
             AccountsList.Items.Refresh();
             button.IsEnabled = false;
-
             await _oauth.AuthorizeAsync(settings);
             account.State = ConnectionState.Connected;
             account.DisplayName = "Authorization received";
             AccountsList.Items.Refresh();
-
             MessageBox.Show(
                 $"{provider} authorization completed. Token exchange is the next connection step.",
                 $"{provider} connected", MessageBoxButton.OK, MessageBoxImage.Information);
@@ -75,9 +80,14 @@ public partial class MainWindow : Window
             MessageBox.Show(ex.Message, $"{provider} connection failed",
                 MessageBoxButton.OK, MessageBoxImage.Error);
         }
-        finally
-        {
-            button.IsEnabled = true;
-        }
+        finally { button.IsEnabled = true; }
+    }
+
+    private void DisconnectAccount(object sender, RoutedEventArgs e)
+    {
+        if (sender is not Button button || button.Tag is not string provider) return;
+        var account = Accounts.First(a => a.Provider == provider);
+        _accountStates.Disconnect(account);
+        AccountsList.Items.Refresh();
     }
 }
