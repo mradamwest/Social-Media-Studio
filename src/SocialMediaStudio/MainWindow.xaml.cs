@@ -21,7 +21,7 @@ public partial class MainWindow : Window
     public MainWindow()
     {
         _accountStates = new AccountStateService(_tokens);
-        _publishing = new PublishingCoordinator(new ISocialPublisher[] { new BlueskyPublisher(_tokens), new XPublisher(_tokens), new ThreadsPublisher(_tokens), new FacebookPublisher(_tokens) });
+        _publishing = new PublishingCoordinator(new ISocialPublisher[] { new BlueskyPublisher(_tokens), new XPublisher(_tokens), new ThreadsPublisher(_tokens), new FacebookPublisher(_tokens), new InstagramPublisher(_tokens) });
         InitializeComponent();
         AccountsList.ItemsSource = Accounts;
         _accountStates.Restore(Accounts);
