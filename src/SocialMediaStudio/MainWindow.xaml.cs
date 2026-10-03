@@ -61,6 +61,12 @@ public partial class MainWindow : Window
 
         var definition = ProviderConnectionCatalog.Definitions[provider];
         var storedCredential = _developerCredentials.Load(provider);
+        if (storedCredential is null && (provider.Equals("Facebook", StringComparison.OrdinalIgnoreCase) || provider.Equals("Instagram", StringComparison.OrdinalIgnoreCase)))
+        {
+            var sibling = provider.Equals("Facebook", StringComparison.OrdinalIgnoreCase) ? "Instagram" : "Facebook";
+            storedCredential = _developerCredentials.Load(sibling);
+            if (storedCredential is not null) _developerCredentials.Save(provider, storedCredential.ClientId, storedCredential.ClientSecret);
+        }
         var clientId = storedCredential?.ClientId
             ?? Environment.GetEnvironmentVariable(definition.ClientIdSetting);
 
