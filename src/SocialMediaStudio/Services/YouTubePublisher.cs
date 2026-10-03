@@ -16,6 +16,7 @@ public sealed class YouTubePublisher : ISocialPublisher
 
     public YouTubePublisher(SecureTokenStore tokens) => _tokens = tokens;
     public string Provider => "YouTube";
+    public event Action<long, long>? UploadProgress;
 
     public Task ConnectAsync(CancellationToken cancellationToken = default) =>
         throw new InvalidOperationException("Use Connected Accounts to connect YouTube.");
@@ -97,13 +98,42 @@ public sealed class YouTubePublisher : ISocialPublisher
         await using var stream = File.OpenRead(videoPath);
         using var upload = new HttpRequestMessage(HttpMethod.Put, uploadUri);
         upload.Headers.Authorization = new AuthenticationHeaderValue("Bearer", token.AccessToken);
-        upload.Content = new StreamContent(stream);
-        upload.Content.Headers.ContentType = new MediaTypeHeaderValue(ContentType(videoPath));
-        upload.Content.Headers.ContentLength = stream.Length;
+        upload.Content = new ProgressStreamContent(stream, ContentType(videoPath), (sent, total) => UploadProgress?.Invoke(sent, total));
 
         using var response = await _http.SendAsync(upload, HttpCompletionOption.ResponseHeadersRead, cancellationToken);
         if (!response.IsSuccessStatusCode)
             throw new InvalidOperationException(YouTubeError("video upload", response.StatusCode));
+    }
+
+    private sealed class ProgressStreamContent : HttpContent
+    {
+        private readonly Stream _source;
+        private readonly Action<long, long> _progress;
+        private readonly long _length;
+
+        public ProgressStreamContent(Stream source, string contentType, Action<long, long> progress)
+        {
+            _source = source;
+            _progress = progress;
+            _length = source.Length;
+            Headers.ContentType = new MediaTypeHeaderValue(contentType);
+            Headers.ContentLength = _length;
+        }
+
+        protected override bool TryComputeLength(out long length) { length = _length; return true; }
+
+        protected override async Task SerializeToStreamAsync(Stream target, System.Net.TransportContext? context)
+        {
+            var buffer = new byte[1024 * 1024];
+            long sent = 0;
+            int read;
+            while ((read = await _source.ReadAsync(buffer.AsMemory(0, buffer.Length))) > 0)
+            {
+                await target.WriteAsync(buffer.AsMemory(0, read));
+                sent += read;
+                _progress(sent, _length);
+            }
+        }
     }
 
     private static string YouTubeError(string operation, System.Net.HttpStatusCode status) =>
