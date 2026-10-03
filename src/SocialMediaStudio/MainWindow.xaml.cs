@@ -269,6 +269,12 @@ public partial class MainWindow : Window
         _draft.Networks.Clear(); foreach (var network in post.Networks) _draft.Networks.Add(network);
         MediaDropText.Text = post.MediaFiles.Count == 0 ? "No media selected." : string.Join(Environment.NewLine, post.MediaFiles.Select(Path.GetFileName));
         CreatePostView.Visibility = Visibility.Visible; PlannerView.Visibility = Visibility.Collapsed; AccountsView.Visibility = Visibility.Collapsed;
+        if (post.ScheduledFor is DateTimeOffset scheduled)
+        {
+            var local = scheduled.ToLocalTime();
+            ScheduleDatePicker.SelectedDate = local.Date;
+            ScheduleTimeBox.Text = local.ToString("h:mm tt");
+        }
         PublishStatusText.Text = $"Editing saved post {post.Id[..8]}";
     }
 
