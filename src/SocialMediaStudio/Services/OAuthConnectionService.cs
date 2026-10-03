@@ -11,7 +11,9 @@ public sealed record OAuthProviderSettings(
     string AuthorizationEndpoint,
     string TokenEndpoint,
     string Scope,
-    string RedirectPath = "/callback/");
+    string RedirectPath = "/callback/",
+    bool UsePkce = true,
+    bool RequestOfflineAccess = false);
 
 public sealed record OAuthAuthorizationResult(
     string Code,
@@ -36,9 +38,8 @@ public sealed class OAuthConnectionService
             $"&redirect_uri={Uri.EscapeDataString(redirectUri)}" +
             $"&scope={Uri.EscapeDataString(settings.Scope)}" +
             $"&state={Uri.EscapeDataString(state)}" +
-            (settings.Provider.Equals("YouTube", StringComparison.OrdinalIgnoreCase) ? "&access_type=offline&prompt=consent" : string.Empty) +
-            $"&code_challenge={Uri.EscapeDataString(codeChallenge)}" +
-            "&code_challenge_method=S256";
+            (settings.RequestOfflineAccess ? "&access_type=offline&prompt=consent" : string.Empty) +
+            (settings.UsePkce ? $"&code_challenge={Uri.EscapeDataString(codeChallenge)}&code_challenge_method=S256" : string.Empty);
 
         using var listener = new HttpListener();
         listener.Prefixes.Add(redirectUri);
@@ -62,7 +63,7 @@ public sealed class OAuthConnectionService
         if (!string.Equals(state, returnedState, StringComparison.Ordinal))
             throw new InvalidOperationException("OAuth state validation failed.");
 
-        return new OAuthAuthorizationResult(code, returnedState, redirectUri, codeVerifier);
+        return new OAuthAuthorizationResult(code, returnedState, redirectUri, settings.UsePkce ? codeVerifier : string.Empty);
     }
 
     private static string Base64Url(byte[] bytes) =>
