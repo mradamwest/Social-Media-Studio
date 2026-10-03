@@ -91,7 +91,7 @@ public partial class MainWindow : Window
                     ? null
                     : Environment.GetEnvironmentVariable(definition.ClientSecretSetting));
             var token = await _tokenExchange.ExchangeAsync(
-                settings, authorization.Code, authorization.RedirectUri, clientSecret);
+                settings, authorization.Code, authorization.RedirectUri, clientSecret, authorization.CodeVerifier);
 
             _tokens.SaveOAuth(provider, token);
             account.State = ConnectionState.Connected;
