@@ -11,6 +11,8 @@ public sealed class YouTubePublisher : ISocialPublisher
 {
     private readonly HttpClient _http = new();
     private readonly SecureTokenStore _tokens;
+    private readonly OAuthTokenExchangeService _tokenExchange = new();
+    private readonly DeveloperCredentialStore _credentials = new();
 
     public YouTubePublisher(SecureTokenStore tokens) => _tokens = tokens;
     public string Provider => "YouTube";
@@ -39,6 +41,19 @@ public sealed class YouTubePublisher : ISocialPublisher
         await ValidateAsync(draft, cancellationToken);
         var token = _tokens.LoadOAuth(Provider)
             ?? throw new InvalidOperationException("YouTube is not connected.");
+        if (_tokens.IsExpired(token))
+        {
+            if (string.IsNullOrWhiteSpace(token.RefreshToken))
+                throw new InvalidOperationException("YouTube connection expired. Reconnect YouTube.");
+            var definition = ProviderConnectionCatalog.Definitions[Provider];
+            var credential = _credentials.Load(Provider);
+            var clientId = credential?.ClientId ?? Environment.GetEnvironmentVariable(definition.ClientIdSetting);
+            if (string.IsNullOrWhiteSpace(clientId))
+                throw new InvalidOperationException("YouTube connection needs account setup again.");
+            var settings = new OAuthProviderSettings(definition.Provider, clientId, definition.AuthorizationEndpoint, definition.TokenEndpoint, definition.Scope);
+            token = await _tokenExchange.RefreshAsync(settings, token.RefreshToken, credential?.ClientSecret, cancellationToken);
+            _tokens.SaveOAuth(Provider, token);
+        }
 
         var videoPath = draft.MediaFiles.First(IsVideo);
         var title = string.IsNullOrWhiteSpace(draft.Title)
