@@ -19,6 +19,7 @@ public partial class App : Application
     protected override void OnExit(ExitEventArgs e)
     {
         _schedulerCancellation?.Cancel();
+        _schedulerCancellation?.Dispose();
         _mcpCancellation?.Cancel();
         _mcpServer?.DisposeAsync().AsTask().GetAwaiter().GetResult();
         _mcpCancellation?.Dispose();
