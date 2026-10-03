@@ -275,7 +275,10 @@ public partial class MainWindow : Window
         _draft.State = PublishState.Draft;
         try
         {
-            var saved = _postQueue.Create(CurrentPostRequest());
+            var saved = _editingQueuedPostId is null
+                ? _postQueue.Create(CurrentPostRequest())
+                : _postQueue.Update(_editingQueuedPostId, CurrentPostRequest());
+            _editingQueuedPostId = saved.Id;
             PublishStatusText.Text = $"Draft saved — {saved.Id[..8]}";
         }
         catch (Exception ex) { MessageBox.Show(ex.Message, "Save Draft", MessageBoxButton.OK, MessageBoxImage.Warning); }
@@ -290,11 +293,20 @@ public partial class MainWindow : Window
             MessageBox.Show("Select at least one platform before scheduling.", "Schedule", MessageBoxButton.OK, MessageBoxImage.Information);
             return;
         }
-        _draft.ScheduledFor = DateTimeOffset.Now.AddHours(1);
+        var date = ScheduleDatePicker.SelectedDate ?? DateTime.Today;
+        if (!DateTime.TryParse($"{date:yyyy-MM-dd} {ScheduleTimeBox.Text}", out var localSchedule) || localSchedule <= DateTime.Now)
+        {
+            MessageBox.Show("Choose a valid future date and time.", "Schedule", MessageBoxButton.OK, MessageBoxImage.Information);
+            return;
+        }
+        _draft.ScheduledFor = new DateTimeOffset(localSchedule);
         _draft.State = PublishState.Scheduled;
         try
         {
-            var saved = _postQueue.Create(CurrentPostRequest(), _draft.ScheduledFor);
+            var saved = _editingQueuedPostId is null
+                ? _postQueue.Create(CurrentPostRequest(), _draft.ScheduledFor)
+                : _postQueue.Update(_editingQueuedPostId, CurrentPostRequest(), _draft.ScheduledFor);
+            _editingQueuedPostId = saved.Id;
             PublishStatusText.Text = $"Scheduled for {saved.ScheduledFor:MMM d, h:mm tt} — saved to Planner queue.";
         }
         catch (Exception ex) { MessageBox.Show(ex.Message, "Schedule", MessageBoxButton.OK, MessageBoxImage.Warning); }
