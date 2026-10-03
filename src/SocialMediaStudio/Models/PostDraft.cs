@@ -3,6 +3,7 @@ public enum PublishState { Draft, Scheduled, Publishing, Published, Failed, Need
 public sealed class PostDraft {
  public string Caption { get; set; } = "";
  public string? Title { get; set; }
+ public string YouTubePrivacy { get; set; } = "private";
  public List<string> MediaFiles { get; } = [];
  public HashSet<string> Networks { get; } = [];
  public DateTimeOffset? ScheduledFor { get; set; }
