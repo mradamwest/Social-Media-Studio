@@ -75,6 +75,7 @@ public partial class MainWindow : Window
         AnalyticsDrafts.Text = posts.Count(x => x.State == PublishState.Draft).ToString();
         AnalyticsPublished.Text = posts.Count(x => x.State == PublishState.Published).ToString();
         AnalyticsScheduled.Text = posts.Count(x => x.State == PublishState.Scheduled).ToString();
+        AnalyticsPublishing.Text = posts.Count(x => x.State == PublishState.Publishing).ToString();
         AnalyticsFailed.Text = posts.Count(x => x.State is PublishState.Failed or PublishState.NeedsAttention).ToString();
         var completed = posts.Count(x => x.State is PublishState.Published or PublishState.Failed or PublishState.NeedsAttention);
         var published = posts.Count(x => x.State == PublishState.Published);
