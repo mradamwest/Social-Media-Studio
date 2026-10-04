@@ -7,6 +7,7 @@ namespace SocialMediaStudio.Services;
 public sealed class PublishingHistoryService
 {
     private readonly string _path;
+    private readonly string _backupPath;
     private readonly JsonSerializerOptions _json = new() { WriteIndented = true };
     private readonly object _gate = new();
 
@@ -15,6 +16,7 @@ public sealed class PublishingHistoryService
         _path = path ?? Path.Combine(
             Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),
             "SocialMediaStudio", "publishing-history.json");
+        _backupPath = _path + ".bak";
     }
 
     public IReadOnlyList<PublishingHistoryEntry> List()
@@ -61,7 +63,13 @@ public sealed class PublishingHistoryService
         }
         catch
         {
-            return [];
+            try
+            {
+                if (!File.Exists(_backupPath)) return [];
+                return JsonSerializer.Deserialize<List<PublishingHistoryEntry>>(
+                    File.ReadAllText(_backupPath), _json) ?? [];
+            }
+            catch { return []; }
         }
     }
 
@@ -70,6 +78,15 @@ public sealed class PublishingHistoryService
         var directory = Path.GetDirectoryName(_path);
         if (!string.IsNullOrWhiteSpace(directory)) Directory.CreateDirectory(directory);
         var tempPath = _path + ".tmp";
+        if (File.Exists(_path))
+        {
+            try
+            {
+                JsonSerializer.Deserialize<List<PublishingHistoryEntry>>(File.ReadAllText(_path), _json);
+                File.Copy(_path, _backupPath, true);
+            }
+            catch { }
+        }
         File.WriteAllText(tempPath, JsonSerializer.Serialize(items, _json));
         File.Move(tempPath, _path, true);
     }
