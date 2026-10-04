@@ -443,6 +443,9 @@ public partial class MainWindow : Window
         _draft.Networks.Clear(); foreach (var network in copy.Networks) _draft.Networks.Add(network);
         _draft.ScheduledFor = null;
         _draft.State = PublishState.Draft;
+        _draft.YouTubePrivacy = "private";
+        if (YouTubePrivacyBox.Items.Count > 0)
+            YouTubePrivacyBox.SelectedIndex = 0;
         SetPlatformChecks(copy.Networks);
         MediaDropText.Text = copy.MediaFiles.Count == 0 ? "No media selected." : string.Join(Environment.NewLine, copy.MediaFiles.Select(Path.GetFileName));
         ScheduleDatePicker.SelectedDate = DateTime.Today.AddDays(1);
