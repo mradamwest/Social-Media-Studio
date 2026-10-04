@@ -389,6 +389,7 @@ public partial class MainWindow : Window
         if (sender is not Button button || button.Tag is not string id) return;
         var post = _postQueue.Get(id);
         if (post is null) return;
+        _editingQueuedPostId = post.Id;
         TitleBox.Text = post.Title ?? string.Empty;
         CaptionBox.Text = post.Caption;
         _draft.MediaFiles.Clear(); _draft.MediaFiles.AddRange(post.MediaFiles);
