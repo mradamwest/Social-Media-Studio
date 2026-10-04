@@ -76,6 +76,10 @@ public partial class MainWindow : Window
         AnalyticsPublished.Text = posts.Count(x => x.State == PublishState.Published).ToString();
         AnalyticsScheduled.Text = posts.Count(x => x.State == PublishState.Scheduled).ToString();
         AnalyticsPublishing.Text = posts.Count(x => x.State == PublishState.Publishing).ToString();
+        var nextScheduled = posts.Where(x => x.State == PublishState.Scheduled && x.ScheduledFor is not null && x.ScheduledFor > DateTimeOffset.Now).OrderBy(x => x.ScheduledFor).FirstOrDefault();
+        AnalyticsUpcoming.Text = nextScheduled is null
+            ? "No scheduled posts."
+            : $"{nextScheduled.ScheduledFor!.Value.ToLocalTime():MMM d, yyyy h:mm tt} — {(string.IsNullOrWhiteSpace(nextScheduled.Title) ? nextScheduled.Caption : nextScheduled.Title)}";
         AnalyticsFailed.Text = posts.Count(x => x.State is PublishState.Failed or PublishState.NeedsAttention).ToString();
         var completed = posts.Count(x => x.State is PublishState.Published or PublishState.Failed or PublishState.NeedsAttention);
         var published = posts.Count(x => x.State == PublishState.Published);
