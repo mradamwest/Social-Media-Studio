@@ -378,7 +378,15 @@ public partial class MainWindow : Window
             if (_editingQueuedPostId is not null)
                 _postQueue.SetState(_editingQueuedPostId, PublishState.Failed);
             PublishStatusText.Text = "Publishing failed.";
-            MessageBox.Show(ex.Message, "Publishing failed", MessageBoxButton.OK, MessageBoxImage.Error);
+            var message = ex.Message;
+            if (message.Contains("access_token", StringComparison.OrdinalIgnoreCase) ||
+                message.Contains("refresh_token", StringComparison.OrdinalIgnoreCase) ||
+                message.Contains("client_secret", StringComparison.OrdinalIgnoreCase) ||
+                message.Contains("authorization:", StringComparison.OrdinalIgnoreCase))
+                message = "Publishing failed. Sensitive provider details were removed; reconnect the account and try again.";
+            else if (message.Length > 300)
+                message = message[..300] + "…";
+            MessageBox.Show(message, "Publishing failed", MessageBoxButton.OK, MessageBoxImage.Error);
         }
         finally { PostNowButton.IsEnabled = true; }
     }
