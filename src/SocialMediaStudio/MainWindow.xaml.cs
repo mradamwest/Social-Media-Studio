@@ -284,6 +284,8 @@ public partial class MainWindow : Window
                 settings, authorization.Code, authorization.RedirectUri, clientSecret, authorization.CodeVerifier);
 
             _tokens.SaveOAuth(provider, token);
+            if (provider.Equals("Facebook", StringComparison.OrdinalIgnoreCase))
+                _facebookPageSelection.Delete();
             account.State = ConnectionState.Connected;
             account.TokenExpiresAt = token.ExpiresAt;
             account.DisplayName = "Connected";
