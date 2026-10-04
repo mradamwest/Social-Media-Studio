@@ -388,7 +388,11 @@ public partial class MainWindow : Window
                 message = message[..300] + "…";
             MessageBox.Show(message, "Publishing failed", MessageBoxButton.OK, MessageBoxImage.Error);
         }
-        finally { PostNowButton.IsEnabled = true; }
+        finally
+        {
+            PostNowButton.IsEnabled = true;
+            RefreshAnalytics();
+        }
     }
 
     private void SaveDraft(object sender, RoutedEventArgs e)
