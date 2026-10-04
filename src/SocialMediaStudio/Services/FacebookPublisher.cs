@@ -114,6 +114,8 @@ public sealed class FacebookPublisher : ISocialPublisher
             response = await _http.PostAsync($"https://graph.facebook.com/v24.0/{pageId}/{(isVideo ? "videos" : "photos")}", form, cancellationToken);
         }
 
+        using (response)
+        {
         if (!response.IsSuccessStatusCode)
         {
             if (selectedPage is not null && response.StatusCode is System.Net.HttpStatusCode.Unauthorized or System.Net.HttpStatusCode.Forbidden)
@@ -122,6 +124,7 @@ public sealed class FacebookPublisher : ISocialPublisher
                 throw new InvalidOperationException("Facebook Page access expired or was revoked. Open Connected Accounts and choose the Page again.");
             }
             throw new InvalidOperationException($"Facebook publish failed ({(int)response.StatusCode}).");
+        }
         }
     }
 }
