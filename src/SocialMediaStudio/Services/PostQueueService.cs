@@ -20,6 +20,7 @@ public sealed class PostQueueService
         _path = path ?? Path.Combine(
             Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),
             "SocialMediaStudio", "post-queue.json");
+        _backupPath = _path + ".bak";
     }
 
     public IReadOnlyList<QueuedPost> List() { lock (_gate) return Load(); }
@@ -124,7 +125,12 @@ public sealed class PostQueueService
         }
         catch
         {
-            return [];
+            try
+            {
+                if (!File.Exists(_backupPath)) return [];
+                return JsonSerializer.Deserialize<List<QueuedPost>>(File.ReadAllText(_backupPath), _json) ?? [];
+            }
+            catch { return []; }
         }
     }
 
@@ -133,6 +139,15 @@ public sealed class PostQueueService
         var directory = Path.GetDirectoryName(_path);
         if (!string.IsNullOrWhiteSpace(directory)) Directory.CreateDirectory(directory);
         var tempPath = _path + ".tmp";
+        if (File.Exists(_path))
+        {
+            try
+            {
+                JsonSerializer.Deserialize<List<QueuedPost>>(File.ReadAllText(_path), _json);
+                File.Copy(_path, _backupPath, true);
+            }
+            catch { }
+        }
         File.WriteAllText(tempPath, JsonSerializer.Serialize(items, _json));
         File.Move(tempPath, _path, true);
     }
