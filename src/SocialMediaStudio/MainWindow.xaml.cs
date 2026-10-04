@@ -232,6 +232,12 @@ public partial class MainWindow : Window
         if (sender is not Button button || button.Tag is not string provider) return;
         var account = Accounts.First(a => a.Provider == provider);
 
+        if (provider.Equals("Bluesky", StringComparison.OrdinalIgnoreCase))
+        {
+            MessageBox.Show("Bluesky account connection is not ready yet. Its AT Protocol authentication flow is different from the OAuth connectors, so Social Media Studio will not open a broken generic login.", "Connect Bluesky", MessageBoxButton.OK, MessageBoxImage.Information);
+            return;
+        }
+
         if (!ProviderConnectionCatalog.Definitions.ContainsKey(provider))
         {
             MessageBox.Show($"{provider} connector will be added in the next provider batch.",
