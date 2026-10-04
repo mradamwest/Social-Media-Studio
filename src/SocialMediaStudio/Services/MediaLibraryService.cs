@@ -32,7 +32,11 @@ public sealed class MediaLibraryService
             Directory.CreateDirectory(Path.GetDirectoryName(_path)!);
             var temp = _path + ".tmp";
             File.WriteAllText(temp, JsonSerializer.Serialize(items.OrderBy(Path.GetFileName), new JsonSerializerOptions { WriteIndented = true }));
-            if (File.Exists(_path)) File.Copy(_path, _backupPath, true);
+            if (File.Exists(_path))
+            {
+                try { _ = JsonSerializer.Deserialize<string[]>(File.ReadAllText(_path)); File.Copy(_path, _backupPath, true); }
+                catch { }
+            }
             File.Move(temp, _path, true);
             return true;
         }
@@ -48,7 +52,11 @@ public sealed class MediaLibraryService
             Directory.CreateDirectory(Path.GetDirectoryName(_path)!);
             var temp = _path + ".tmp";
             File.WriteAllText(temp, JsonSerializer.Serialize(items.OrderBy(Path.GetFileName), new JsonSerializerOptions { WriteIndented = true }));
-            if (File.Exists(_path)) File.Copy(_path, _backupPath, true);
+            if (File.Exists(_path))
+            {
+                try { _ = JsonSerializer.Deserialize<string[]>(File.ReadAllText(_path)); File.Copy(_path, _backupPath, true); }
+                catch { }
+            }
             File.Move(temp, _path, true);
             return items.Count - before;
         }
