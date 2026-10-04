@@ -8,6 +8,7 @@ public sealed class MediaLibraryService
     private readonly string _path;
     private readonly object _gate = new();
     private readonly string _backupPath;
+    private static readonly HashSet<string> AllowedExtensions = new(StringComparer.OrdinalIgnoreCase) { ".jpg", ".jpeg", ".png", ".webp", ".mp4", ".mov", ".m4v" };
 
     public MediaLibraryService(string? path = null)
     {
@@ -48,8 +49,7 @@ public sealed class MediaLibraryService
         {
             var items = Load().ToHashSet(StringComparer.OrdinalIgnoreCase);
             var before = items.Count;
-            var allowed = new HashSet<string>(StringComparer.OrdinalIgnoreCase) { ".jpg", ".jpeg", ".png", ".webp", ".mp4", ".mov", ".m4v" };
-            foreach (var path in paths.Where(File.Exists).Where(path => allowed.Contains(Path.GetExtension(path))))
+            foreach (var path in paths.Where(File.Exists).Where(path => AllowedExtensions.Contains(Path.GetExtension(path))))
             {
                 try { items.Add(Path.GetFullPath(path)); }
                 catch { }
@@ -74,6 +74,7 @@ public sealed class MediaLibraryService
         {
             return (JsonSerializer.Deserialize<string[]>(File.ReadAllText(_path)) ?? [])
                 .Where(File.Exists)
+                .Where(path => AllowedExtensions.Contains(Path.GetExtension(path)))
                 .Select(path => { try { return Path.GetFullPath(path); } catch { return null; } })
                 .Where(path => path is not null)
                 .Select(path => path!)
