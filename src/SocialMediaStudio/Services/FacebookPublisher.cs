@@ -69,9 +69,11 @@ public sealed class FacebookPublisher : ISocialPublisher
             if (!pagesResponse.IsSuccessStatusCode)
                 throw new InvalidOperationException($"Facebook Page discovery failed ({(int)pagesResponse.StatusCode}).");
             using var pagesJson = System.Text.Json.JsonDocument.Parse(await pagesResponse.Content.ReadAsStringAsync(cancellationToken));
-            var pages = pagesJson.RootElement.GetProperty("data").EnumerateArray()
+            if (!pagesJson.RootElement.TryGetProperty("data", out var pageData) || pageData.ValueKind != System.Text.Json.JsonValueKind.Array)
+                throw new InvalidOperationException("Facebook returned an unexpected Page list. Reconnect Facebook and try again.");
+            var pages = pageData.EnumerateArray()
                 .Select(page => new FacebookPage(
-                    page.GetProperty("id").GetString() ?? string.Empty,
+                    page.TryGetProperty("id", out var id) ? id.GetString() ?? string.Empty : string.Empty,
                     page.TryGetProperty("name", out var name) ? name.GetString() ?? "Unnamed Page" : "Unnamed Page",
                     page.TryGetProperty("access_token", out var pageToken) ? pageToken.GetString() : null))
                 .Where(page => !string.IsNullOrWhiteSpace(page.Id))
