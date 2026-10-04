@@ -575,7 +575,7 @@ public partial class MainWindow : Window
         if (provider.Equals("Facebook", StringComparison.OrdinalIgnoreCase))
         {
             _facebookPageSelection.Delete();
-            account.DisplayName = null;
+            account.DisplayName = "";
         }
         AccountsList.Items.Refresh();
     }
