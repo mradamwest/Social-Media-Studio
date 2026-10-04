@@ -586,6 +586,12 @@ public partial class MainWindow : Window
             MessageBox.Show("Connect Facebook first.", "Facebook Page", MessageBoxButton.OK, MessageBoxImage.Information);
             return;
         }
+        if (token.ExpiresAt is not null && token.ExpiresAt <= DateTimeOffset.UtcNow)
+        {
+            _facebookPageSelection.Delete();
+            MessageBox.Show("Facebook connection has expired. Reconnect Facebook before choosing a Page.", "Facebook Page", MessageBoxButton.OK, MessageBoxImage.Information);
+            return;
+        }
         try
         {
             using var http = new System.Net.Http.HttpClient();
