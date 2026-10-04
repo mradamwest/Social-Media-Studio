@@ -48,7 +48,11 @@ public sealed class MediaLibraryService
         {
             var items = Load().ToHashSet(StringComparer.OrdinalIgnoreCase);
             var before = items.Count;
-            foreach (var path in paths.Where(File.Exists)) items.Add(path);
+            foreach (var path in paths.Where(File.Exists))
+            {
+                try { items.Add(Path.GetFullPath(path)); }
+                catch { }
+            }
             Directory.CreateDirectory(Path.GetDirectoryName(_path)!);
             var temp = _path + ".tmp";
             File.WriteAllText(temp, JsonSerializer.Serialize(items.OrderBy(Path.GetFileName), new JsonSerializerOptions { WriteIndented = true }));
