@@ -18,6 +18,7 @@ public partial class MainWindow : Window
     private readonly PostDraft _draft = new();
     private readonly PublishingCoordinator _publishing;
     private readonly PostQueueService _postQueue = new();
+    private readonly PublishingHistoryService _history = new();
     private string? _editingQueuedPostId;
 
     public ObservableCollection<SocialAccount> Accounts { get; } =
@@ -77,6 +78,10 @@ public partial class MainWindow : Window
         AnalyticsPlatformSummary.Text = platformCounts.Length == 0
             ? "No platform activity yet."
             : string.Join("   •   ", platformCounts.Select(x => $"{x.Platform}: {x.Count}"));
+        var recent = _history.List().Take(5).ToArray();
+        AnalyticsRecentActivity.Text = recent.Length == 0
+            ? "No recent activity."
+            : string.Join(Environment.NewLine, recent.Select(x => $"{x.CompletedAt.ToLocalTime():MMM d, h:mm tt} — {x.Source} — {x.State}"));
         AnalyticsDrafts.Text = posts.Count(x => x.State == PublishState.Draft).ToString();
         AnalyticsPublished.Text = posts.Count(x => x.State == PublishState.Published).ToString();
         AnalyticsScheduled.Text = posts.Count(x => x.State == PublishState.Scheduled).ToString();
