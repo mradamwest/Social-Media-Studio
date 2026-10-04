@@ -41,6 +41,8 @@ public sealed class FacebookPublisher : ISocialPublisher
 
         var token = _tokens.LoadOAuth(Provider)
             ?? throw new InvalidOperationException("Facebook is not connected.");
+        if (token.ExpiresAt is not null && token.ExpiresAt <= DateTimeOffset.UtcNow)
+            throw new InvalidOperationException("Facebook connection has expired. Reconnect Facebook in Connected Accounts before publishing.");
         var selectedPage = _pageSelection.Load();
         if (selectedPage is not null && (string.IsNullOrWhiteSpace(selectedPage.PageId) || string.IsNullOrWhiteSpace(selectedPage.AccessToken)))
         {
