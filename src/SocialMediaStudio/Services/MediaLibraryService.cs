@@ -58,6 +58,15 @@ public sealed class MediaLibraryService
             return (JsonSerializer.Deserialize<string[]>(File.ReadAllText(_path)) ?? [])
                 .Where(File.Exists).Distinct(StringComparer.OrdinalIgnoreCase).ToArray();
         }
-        catch { return []; }
+        catch
+        {
+            try
+            {
+                var corruptPath = _path + ".corrupt-" + DateTimeOffset.UtcNow.ToUnixTimeSeconds();
+                File.Move(_path, corruptPath, false);
+            }
+            catch { }
+            return [];
+        }
     }
 }
