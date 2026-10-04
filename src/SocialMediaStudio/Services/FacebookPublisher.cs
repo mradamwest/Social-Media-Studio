@@ -91,8 +91,11 @@ public sealed class FacebookPublisher : ISocialPublisher
             }
         }
         if (string.IsNullOrWhiteSpace(pageId)) throw new InvalidOperationException("Facebook Page discovery did not return a Page ID.");
-        if (pageId.Any(ch => !char.IsLetterOrDigit(ch) && ch is not '-' and not '_'))
+        if (pageId.Any(ch => !char.IsDigit(ch)))
+        {
+            _pageSelection.Delete();
             throw new InvalidOperationException("The selected Facebook Page ID is invalid. Choose the Page again in Connected Accounts.");
+        }
 
         if (string.IsNullOrWhiteSpace(effectivePageToken))
             _http.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", token.AccessToken);
