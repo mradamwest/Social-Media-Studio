@@ -72,6 +72,7 @@ public partial class MainWindow : Window
         _accountStates.Restore(Accounts);
         AnalyticsConnectedAccounts.Text = Accounts.Count(x => x.State == ConnectionState.Connected).ToString();
         AnalyticsTotal.Text = posts.Count.ToString();
+        AnalyticsMediaPosts.Text = posts.Count(x => x.MediaFiles.Count > 0).ToString();
         AnalyticsDrafts.Text = posts.Count(x => x.State == PublishState.Draft).ToString();
         AnalyticsPublished.Text = posts.Count(x => x.State == PublishState.Published).ToString();
         AnalyticsScheduled.Text = posts.Count(x => x.State == PublishState.Scheduled).ToString();
