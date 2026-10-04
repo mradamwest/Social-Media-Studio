@@ -247,13 +247,13 @@ public partial class MainWindow : Window
             Multiselect = true,
             Filter = "Media files|*.jpg;*.jpeg;*.png;*.webp;*.mp4;*.mov;*.m4v|All files|*.*"
         };
-        if (dialog.ShowDialog() == true) SetMediaFiles(dialog.FileNames);
+        if (dialog.ShowDialog() == true) SetMediaFiles(_draft.MediaFiles.Concat(dialog.FileNames));
     }
 
     private void MediaDrop(object sender, DragEventArgs e)
     {
         if (!e.Data.GetDataPresent(DataFormats.FileDrop)) return;
-        if (e.Data.GetData(DataFormats.FileDrop) is string[] files) SetMediaFiles(files);
+        if (e.Data.GetData(DataFormats.FileDrop) is string[] files) SetMediaFiles(_draft.MediaFiles.Concat(files));
     }
 
     private void SetMediaFiles(IEnumerable<string> files)
