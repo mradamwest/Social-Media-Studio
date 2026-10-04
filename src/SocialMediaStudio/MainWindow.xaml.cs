@@ -119,6 +119,21 @@ public partial class MainWindow : Window
         AnalyticsView.Visibility = Visibility.Collapsed;
     }
 
+    private void AddMediaToLibrary(object sender, RoutedEventArgs e)
+    {
+        var dialog = new OpenFileDialog
+        {
+            Multiselect = true,
+            Filter = "Media files|*.jpg;*.jpeg;*.png;*.webp;*.mp4;*.mov;*.m4v|All files|*.*"
+        };
+        if (dialog.ShowDialog() != true) return;
+        var files = dialog.FileNames.Where(File.Exists).Where(f => SupportedMediaExtensions.Contains(Path.GetExtension(f))).ToArray();
+        if (files.Length == 0) return;
+        var imported = _postQueue.Create(new AutomationPostRequest("", Array.Empty<string>(), null, files));
+        MediaLibraryList.ItemsSource = _postQueue.List().SelectMany(x => x.MediaFiles).Distinct(StringComparer.OrdinalIgnoreCase).OrderBy(Path.GetFileName).ToArray();
+        PublishStatusText.Text = $"Added {files.Length} media file(s) to library — {imported.Id[..8]}";
+    }
+
     private void UseLibraryMedia(object sender, RoutedEventArgs e)
     {
         if (sender is not Button button || button.Tag is not string path || !File.Exists(path))
