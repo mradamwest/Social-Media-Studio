@@ -91,7 +91,13 @@ public sealed class MediaLibraryService
             try
             {
                 if (File.Exists(_backupPath))
-                    return (JsonSerializer.Deserialize<string[]>(File.ReadAllText(_backupPath)) ?? []).Where(File.Exists).Distinct(StringComparer.OrdinalIgnoreCase).ToArray();
+                    return (JsonSerializer.Deserialize<string[]>(File.ReadAllText(_backupPath)) ?? [])
+                        .Where(File.Exists)
+                        .Where(path => AllowedExtensions.Contains(Path.GetExtension(path)))
+                        .Select(path => { try { return Path.GetFullPath(path); } catch { return null; } })
+                        .Where(path => path is not null)
+                        .Select(path => path!)
+                        .Distinct(StringComparer.OrdinalIgnoreCase).ToArray();
             }
             catch { }
             return [];
