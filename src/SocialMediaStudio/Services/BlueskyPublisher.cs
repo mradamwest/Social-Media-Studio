@@ -63,8 +63,15 @@ public sealed class BlueskyPublisher : ISocialPublisher
 
         if (!response.IsSuccessStatusCode)
         {
-            var body = await response.Content.ReadAsStringAsync(cancellationToken);
-            throw new InvalidOperationException($"Bluesky publish failed ({(int)response.StatusCode}): {body}");
+            throw new InvalidOperationException(BlueskyError(response.StatusCode));
         }
     }
+
+    private static string BlueskyError(System.Net.HttpStatusCode status) => status switch
+    {
+        System.Net.HttpStatusCode.Unauthorized => "Bluesky authorization expired. Reconnect the Bluesky account.",
+        System.Net.HttpStatusCode.Forbidden => "Bluesky refused the post. Check account and app permissions.",
+        System.Net.HttpStatusCode.TooManyRequests => "Bluesky rate limit reached. Wait before posting again.",
+        _ => $"Bluesky publish failed ({(int)status})."
+    };
 }
