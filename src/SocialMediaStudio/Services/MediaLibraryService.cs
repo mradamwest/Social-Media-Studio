@@ -30,6 +30,12 @@ public sealed class MediaLibraryService
             var items = Load().ToList();
             var removed = items.RemoveAll(x => string.Equals(x, path, StringComparison.OrdinalIgnoreCase)) > 0;
             if (!removed) return false;
+            if (items.Count == 0)
+            {
+                try { if (File.Exists(_path)) File.Delete(_path); } catch { }
+                try { if (File.Exists(_backupPath)) File.Delete(_backupPath); } catch { }
+                return true;
+            }
             Directory.CreateDirectory(Path.GetDirectoryName(_path)!);
             var temp = _path + ".tmp";
             File.WriteAllText(temp, JsonSerializer.Serialize(items.OrderBy(Path.GetFileName), new JsonSerializerOptions { WriteIndented = true }));
