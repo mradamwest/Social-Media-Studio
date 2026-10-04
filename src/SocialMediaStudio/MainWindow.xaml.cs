@@ -375,6 +375,8 @@ public partial class MainWindow : Window
         catch (Exception ex)
         {
             _draft.State = PublishState.Failed;
+            if (_editingQueuedPostId is not null)
+                _postQueue.SetState(_editingQueuedPostId, PublishState.Failed);
             PublishStatusText.Text = "Publishing failed.";
             MessageBox.Show(ex.Message, "Publishing failed", MessageBoxButton.OK, MessageBoxImage.Error);
         }
