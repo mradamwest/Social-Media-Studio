@@ -564,7 +564,11 @@ public partial class MainWindow : Window
         if (sender is not Button button || button.Tag is not string provider) return;
         var account = Accounts.First(a => a.Provider == provider);
         _accountStates.Disconnect(account);
-        if (provider.Equals("Facebook", StringComparison.OrdinalIgnoreCase)) _facebookPageSelection.Delete();
+        if (provider.Equals("Facebook", StringComparison.OrdinalIgnoreCase))
+        {
+            _facebookPageSelection.Delete();
+            account.DisplayName = null;
+        }
         AccountsList.Items.Refresh();
     }
     private async void ChooseFacebookPage(object sender, RoutedEventArgs e)
