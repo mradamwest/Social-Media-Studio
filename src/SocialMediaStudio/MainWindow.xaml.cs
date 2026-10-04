@@ -31,7 +31,7 @@ public partial class MainWindow : Window
         _accountStates = new AccountStateService(_tokens);
         var youtubePublisher = new YouTubePublisher(_tokens);
         youtubePublisher.UploadProgress += YouTubeUploadProgress;
-        _publishing = new PublishingCoordinator(new ISocialPublisher[] { new BlueskyPublisher(_tokens), new XPublisher(_tokens), new ThreadsPublisher(_tokens), new FacebookPublisher(_tokens), new InstagramPublisher(_tokens), youtubePublisher, new LinkedInPublisher(_tokens) });
+        _publishing = new PublishingCoordinator(new ISocialPublisher[] { new BlueskyPublisher(_tokens), new XPublisher(_tokens), new ThreadsPublisher(_tokens), new FacebookPublisher(_tokens), new InstagramPublisher(_tokens), youtubePublisher, new LinkedInPublisher(_tokens), new TikTokPublisher(_tokens) });
         InitializeComponent();
         AccountsList.ItemsSource = Accounts;
         _accountStates.Restore(Accounts);
