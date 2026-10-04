@@ -173,7 +173,12 @@ public partial class MainWindow : Window
     {
         if (sender is not Button button || button.Tag is not string path || !File.Exists(path))
         {
-            MessageBox.Show("That media file is no longer available.", "Media Library", MessageBoxButton.OK, MessageBoxImage.Information);
+            MessageBox.Show("That media file is no longer available. Reopen the Media Library to refresh the list.", "Media Library", MessageBoxButton.OK, MessageBoxImage.Information);
+            return;
+        }
+        if (!SupportedMediaExtensions.Contains(Path.GetExtension(path)))
+        {
+            MessageBox.Show("That file type is no longer supported for posting.", "Media Library", MessageBoxButton.OK, MessageBoxImage.Information);
             return;
         }
         var existing = _draft.MediaFiles.Concat(new[] { path });
