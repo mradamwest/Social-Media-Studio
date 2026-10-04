@@ -46,8 +46,9 @@ public sealed class FacebookPublisher : ISocialPublisher
             selectedPage = null;
         }
         var pageId = selectedPage?.PageId;
-        if (!string.IsNullOrWhiteSpace(selectedPage?.AccessToken))
-            _http.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", selectedPage.AccessToken);
+        var effectivePageToken = selectedPage?.AccessToken;
+        if (!string.IsNullOrWhiteSpace(effectivePageToken))
+            _http.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", effectivePageToken);
         if (string.IsNullOrWhiteSpace(pageId))
         {
             _http.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", token.AccessToken);
@@ -69,11 +70,14 @@ public sealed class FacebookPublisher : ISocialPublisher
             var page = pages[0];
             pageId = page.Id;
             if (!string.IsNullOrWhiteSpace(page.AccessToken))
-                _http.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", page.AccessToken);
+            {
+                effectivePageToken = page.AccessToken;
+                _http.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", effectivePageToken);
+            }
         }
         if (string.IsNullOrWhiteSpace(pageId)) throw new InvalidOperationException("Facebook Page discovery did not return a Page ID.");
 
-        if (string.IsNullOrWhiteSpace(selectedPage?.AccessToken))
+        if (string.IsNullOrWhiteSpace(effectivePageToken))
             _http.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", token.AccessToken);
         HttpResponseMessage response;
         if (draft.MediaFiles.Count == 0)
