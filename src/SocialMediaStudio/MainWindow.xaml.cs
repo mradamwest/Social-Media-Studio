@@ -621,7 +621,12 @@ public partial class MainWindow : Window
         }
         catch (Exception ex)
         {
-            MessageBox.Show(ex.Message, "Facebook Page selection failed", MessageBoxButton.OK, MessageBoxImage.Error);
+            var message = ex.Message;
+            foreach (var sensitive in new[] { "access_token", "refresh_token", "client_secret", "authorization", "bearer" })
+                if (message.Contains(sensitive, StringComparison.OrdinalIgnoreCase))
+                    message = "Facebook Page selection failed securely. Reconnect Facebook and try again.";
+            if (message.Length > 300) message = message[..300] + "...";
+            MessageBox.Show(message, "Facebook Page selection failed", MessageBoxButton.OK, MessageBoxImage.Error);
         }
     }
 
