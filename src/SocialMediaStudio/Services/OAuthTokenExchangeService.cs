@@ -1,4 +1,6 @@
 using System.Net.Http;
+using System.Net.Http.Headers;
+using System.Text;
 using System.Text.Json;
 
 namespace SocialMediaStudio.Services;
@@ -33,10 +35,21 @@ public sealed class OAuthTokenExchangeService
         if (!string.IsNullOrWhiteSpace(codeVerifier))
             values["code_verifier"] = codeVerifier;
 
-        using var response = await _httpClient.PostAsync(
-            settings.TokenEndpoint,
-            new FormUrlEncodedContent(values),
-            cancellationToken);
+        using var request = new HttpRequestMessage(HttpMethod.Post, settings.TokenEndpoint)
+        {
+            Content = new FormUrlEncodedContent(values)
+        };
+        if (settings.Provider.Equals("Pinterest", StringComparison.OrdinalIgnoreCase))
+        {
+            if (string.IsNullOrWhiteSpace(clientSecret))
+                throw new InvalidOperationException("Pinterest requires the App secret to connect.");
+            values.Remove(settings.ClientIdParameter);
+            values.Remove("client_secret");
+            request.Content = new FormUrlEncodedContent(values);
+            var basic = Convert.ToBase64String(Encoding.UTF8.GetBytes($"{settings.ClientId}:{clientSecret}"));
+            request.Headers.Authorization = new AuthenticationHeaderValue("Basic", basic);
+        }
+        using var response = await _httpClient.SendAsync(request, cancellationToken);
 
         var body = await response.Content.ReadAsStringAsync(cancellationToken);
         if (!response.IsSuccessStatusCode)
@@ -78,8 +91,21 @@ public sealed class OAuthTokenExchangeService
         if (!string.IsNullOrWhiteSpace(clientSecret))
             values["client_secret"] = clientSecret;
 
-        using var response = await _httpClient.PostAsync(
-            settings.TokenEndpoint, new FormUrlEncodedContent(values), cancellationToken);
+        using var request = new HttpRequestMessage(HttpMethod.Post, settings.TokenEndpoint)
+        {
+            Content = new FormUrlEncodedContent(values)
+        };
+        if (settings.Provider.Equals("Pinterest", StringComparison.OrdinalIgnoreCase))
+        {
+            if (string.IsNullOrWhiteSpace(clientSecret))
+                throw new InvalidOperationException("Pinterest requires the App secret to refresh the connection.");
+            values.Remove(settings.ClientIdParameter);
+            values.Remove("client_secret");
+            request.Content = new FormUrlEncodedContent(values);
+            var basic = Convert.ToBase64String(Encoding.UTF8.GetBytes($"{settings.ClientId}:{clientSecret}"));
+            request.Headers.Authorization = new AuthenticationHeaderValue("Basic", basic);
+        }
+        using var response = await _httpClient.SendAsync(request, cancellationToken);
         var body = await response.Content.ReadAsStringAsync(cancellationToken);
         if (!response.IsSuccessStatusCode)
             throw new InvalidOperationException(TokenError("token refresh", response.StatusCode));
