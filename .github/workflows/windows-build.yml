@@ -18,11 +18,11 @@ jobs:
       - name: Build Windows installer
         run: '& "C:\\Program Files (x86)\\Inno Setup 6\\ISCC.exe" installer\\SocialMediaStudio.iss'
         shell: pwsh
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v6
         with:
           name: Social-Media-Studio-Windows-Installer
           path: installer/output/Social-Media-Studio-Setup.exe
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v6
         with:
           name: Social-Media-Studio-Windows-Portable
           path: publish/
