@@ -23,7 +23,7 @@ public sealed class OAuthTokenExchangeService
         var values = new Dictionary<string, string>
         {
             ["grant_type"] = "authorization_code",
-            ["client_id"] = settings.ClientId,
+            [settings.ClientIdParameter] = settings.ClientId,
             ["code"] = code,
             ["redirect_uri"] = redirectUri
         };
