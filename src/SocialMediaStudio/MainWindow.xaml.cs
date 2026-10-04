@@ -129,9 +129,16 @@ public partial class MainWindow : Window
         if (dialog.ShowDialog() != true) return;
         var files = dialog.FileNames.Where(File.Exists).Where(f => SupportedMediaExtensions.Contains(Path.GetExtension(f))).ToArray();
         if (files.Length == 0) return;
-        var imported = _postQueue.Create(new AutomationPostRequest("", Array.Empty<string>(), null, files));
+        var existing = _postQueue.List().SelectMany(x => x.MediaFiles).ToHashSet(StringComparer.OrdinalIgnoreCase);
+        var newFiles = files.Where(x => !existing.Contains(x)).ToArray();
+        if (newFiles.Length == 0)
+        {
+            PublishStatusText.Text = "Selected media is already in the library.";
+            return;
+        }
+        var imported = _postQueue.Create(new AutomationPostRequest("", Array.Empty<string>(), null, newFiles));
         MediaLibraryList.ItemsSource = _postQueue.List().SelectMany(x => x.MediaFiles).Distinct(StringComparer.OrdinalIgnoreCase).OrderBy(Path.GetFileName).ToArray();
-        PublishStatusText.Text = $"Added {files.Length} media file(s) to library — {imported.Id[..8]}";
+        PublishStatusText.Text = $"Added {newFiles.Length} media file(s) to library — {imported.Id[..8]}";
     }
 
     private void UseLibraryMedia(object sender, RoutedEventArgs e)
