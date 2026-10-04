@@ -181,6 +181,11 @@ public partial class MainWindow : Window
             MessageBox.Show("That file type is no longer supported for posting.", "Media Library", MessageBoxButton.OK, MessageBoxImage.Information);
             return;
         }
+        if (_draft.MediaFiles.Contains(path, StringComparer.OrdinalIgnoreCase))
+        {
+            MessageBox.Show("That media file is already attached to this post.", "Media Library", MessageBoxButton.OK, MessageBoxImage.Information);
+            return;
+        }
         var existing = _draft.MediaFiles.Concat(new[] { path });
         SetMediaFiles(existing);
         CreatePostView.Visibility = Visibility.Visible;
