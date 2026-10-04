@@ -18,6 +18,7 @@ public partial class MainWindow : Window
     private readonly PostDraft _draft = new();
     private readonly PublishingCoordinator _publishing;
     private readonly PostQueueService _postQueue = new();
+    private readonly MediaLibraryService _mediaLibrary= new MediaLibraryService();
     private readonly PublishingHistoryService _history = new();
     private string? _editingQueuedPostId;
 
@@ -133,16 +134,16 @@ public partial class MainWindow : Window
             MessageBox.Show("No supported media files were selected.", "Media Library", MessageBoxButton.OK, MessageBoxImage.Information);
             return;
         }
-        var existing = _postQueue.List().SelectMany(x => x.MediaFiles).ToHashSet(StringComparer.OrdinalIgnoreCase);
+        var existing = _mediaLibrary.List().Concat(_postQueue.List().SelectMany(x => x.MediaFiles)).ToHashSet(StringComparer.OrdinalIgnoreCase);
         var newFiles = files.Where(x => !existing.Contains(x)).ToArray();
         if (newFiles.Length == 0)
         {
             PublishStatusText.Text = "Selected media is already in the library.";
             return;
         }
-        var imported = _postQueue.Create(new AutomationPostRequest("", Array.Empty<string>(), null, newFiles));
-        MediaLibraryList.ItemsSource = _postQueue.List().SelectMany(x => x.MediaFiles).Distinct(StringComparer.OrdinalIgnoreCase).OrderBy(Path.GetFileName).ToArray();
-        PublishStatusText.Text = $"Added {newFiles.Length} media file(s) to library — {imported.Id[..8]}";
+        var added = _mediaLibrary.Add(newFiles);
+        MediaLibraryList.ItemsSource = _mediaLibrary.List().Concat(_postQueue.List().SelectMany(x => x.MediaFiles)).Distinct(StringComparer.OrdinalIgnoreCase).OrderBy(Path.GetFileName).ToArray();
+        PublishStatusText.Text = $"Added {added} media file(s) to library.";
     }
 
     private void UseLibraryMedia(object sender, RoutedEventArgs e)
