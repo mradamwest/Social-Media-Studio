@@ -8,6 +8,7 @@ namespace SocialMediaStudio.Services;
 
 public sealed class FacebookPublisher : ISocialPublisher
 {
+    private sealed record FacebookPage(string Id, string Name, string? AccessToken);
     private readonly HttpClient _http = new();
     private readonly SecureTokenStore _tokens;
     public FacebookPublisher(SecureTokenStore tokens) => _tokens = tokens;
@@ -45,13 +46,21 @@ public sealed class FacebookPublisher : ISocialPublisher
             if (!pagesResponse.IsSuccessStatusCode)
                 throw new InvalidOperationException($"Facebook Page discovery failed ({(int)pagesResponse.StatusCode}).");
             using var pagesJson = System.Text.Json.JsonDocument.Parse(await pagesResponse.Content.ReadAsStringAsync(cancellationToken));
-            var pages = pagesJson.RootElement.GetProperty("data");
-            if (pages.GetArrayLength() == 0)
+            var pages = pagesJson.RootElement.GetProperty("data").EnumerateArray()
+                .Select(page => new FacebookPage(
+                    page.GetProperty("id").GetString() ?? string.Empty,
+                    page.TryGetProperty("name", out var name) ? name.GetString() ?? "Unnamed Page" : "Unnamed Page",
+                    page.TryGetProperty("access_token", out var pageToken) ? pageToken.GetString() : null))
+                .Where(page => !string.IsNullOrWhiteSpace(page.Id))
+                .ToList();
+            if (pages.Count == 0)
                 throw new InvalidOperationException("No Facebook Pages are available for this account.");
+            if (pages.Count > 1)
+                throw new InvalidOperationException($"Multiple Facebook Pages are available ({string.Join(", ", pages.Select(page => page.Name))}). Select a Page in Connected Accounts before publishing.");
             var page = pages[0];
-            pageId = page.GetProperty("id").GetString();
-            if (page.TryGetProperty("access_token", out var pageToken) && !string.IsNullOrWhiteSpace(pageToken.GetString()))
-                _http.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", pageToken.GetString());
+            pageId = page.Id;
+            if (!string.IsNullOrWhiteSpace(page.AccessToken))
+                _http.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", page.AccessToken);
         }
         if (string.IsNullOrWhiteSpace(pageId)) throw new InvalidOperationException("Facebook Page discovery did not return a Page ID.");
 
