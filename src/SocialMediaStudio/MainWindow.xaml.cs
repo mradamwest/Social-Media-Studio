@@ -112,7 +112,7 @@ public partial class MainWindow : Window
 
     private void ShowMediaLibrary(object sender, RoutedEventArgs e)
     {
-        MediaLibraryList.ItemsSource = _postQueue.List().SelectMany(x => x.MediaFiles).Distinct(StringComparer.OrdinalIgnoreCase).OrderBy(Path.GetFileName).ToArray();
+        MediaLibraryList.ItemsSource = _mediaLibrary.List().Concat(_postQueue.List().SelectMany(x => x.MediaFiles)).Distinct(StringComparer.OrdinalIgnoreCase).OrderBy(Path.GetFileName).ToArray();
         CreatePostView.Visibility = Visibility.Collapsed;
         PlannerView.Visibility = Visibility.Collapsed;
         AccountsView.Visibility = Visibility.Collapsed;
