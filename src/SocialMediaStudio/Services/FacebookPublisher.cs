@@ -36,6 +36,7 @@ public sealed class FacebookPublisher : ISocialPublisher
     public async Task PublishAsync(PostDraft draft, CancellationToken cancellationToken = default)
     {
         await ValidateAsync(draft, cancellationToken);
+        _http.DefaultRequestHeaders.Authorization = null;
         if (draft.MediaFiles.Count > 1)
             throw new InvalidOperationException("Facebook currently supports one media file per post.");
         if (draft.MediaFiles.Count == 1)
