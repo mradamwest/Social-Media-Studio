@@ -7,11 +7,13 @@ public sealed class MediaLibraryService
 {
     private readonly string _path;
     private readonly object _gate = new();
+    private readonly string _backupPath;
 
     public MediaLibraryService(string? path = null)
     {
         _path = path ?? Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),
             "SocialMediaStudio", "media-library.json");
+        _backupPath = _path + ".bak";
     }
 
     public IReadOnlyList<string> List()
@@ -30,6 +32,7 @@ public sealed class MediaLibraryService
             Directory.CreateDirectory(Path.GetDirectoryName(_path)!);
             var temp = _path + ".tmp";
             File.WriteAllText(temp, JsonSerializer.Serialize(items.OrderBy(Path.GetFileName), new JsonSerializerOptions { WriteIndented = true }));
+            if (File.Exists(_path)) File.Copy(_path, _backupPath, true);
             File.Move(temp, _path, true);
             return true;
         }
@@ -45,6 +48,7 @@ public sealed class MediaLibraryService
             Directory.CreateDirectory(Path.GetDirectoryName(_path)!);
             var temp = _path + ".tmp";
             File.WriteAllText(temp, JsonSerializer.Serialize(items.OrderBy(Path.GetFileName), new JsonSerializerOptions { WriteIndented = true }));
+            if (File.Exists(_path)) File.Copy(_path, _backupPath, true);
             File.Move(temp, _path, true);
             return items.Count - before;
         }
@@ -64,6 +68,12 @@ public sealed class MediaLibraryService
             {
                 var corruptPath = _path + ".corrupt-" + DateTimeOffset.UtcNow.ToUnixTimeSeconds();
                 File.Move(_path, corruptPath, false);
+            }
+            catch { }
+            try
+            {
+                if (File.Exists(_backupPath))
+                    return (JsonSerializer.Deserialize<string[]>(File.ReadAllText(_backupPath)) ?? []).Where(File.Exists).Distinct(StringComparer.OrdinalIgnoreCase).ToArray();
             }
             catch { }
             return [];
