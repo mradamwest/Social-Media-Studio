@@ -419,6 +419,11 @@ public partial class MainWindow : Window
             ScheduleDatePicker.SelectedDate = local.Date;
             ScheduleTimeBox.Text = local.ToString("h:mm tt");
         }
+        else
+        {
+            ScheduleDatePicker.SelectedDate = DateTime.Today.AddDays(1);
+            ScheduleTimeBox.Text = "6:00 PM";
+        }
         PublishStatusText.Text = $"Editing saved post {post.Id[..8]}";
     }
 
