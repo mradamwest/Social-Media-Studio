@@ -43,8 +43,10 @@ public sealed class BlueskyPublisher : ISocialPublisher
         _http.DefaultRequestHeaders.Authorization =
             new AuthenticationHeaderValue("Bearer", token.AccessToken);
 
-        var did = Environment.GetEnvironmentVariable("SOCIAL_MEDIA_STUDIO_BLUESKY_DID")
-            ?? throw new InvalidOperationException("Bluesky DID is not configured.");
+        var profile = _tokens.LoadBlueskyProfile();
+        var did = profile?.Did;
+        if (string.IsNullOrWhiteSpace(did))
+            throw new InvalidOperationException("Bluesky account profile is missing. Reconnect Bluesky.");
 
         var payload = new
         {
