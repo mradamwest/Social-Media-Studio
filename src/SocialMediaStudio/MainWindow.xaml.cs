@@ -148,7 +148,7 @@ public partial class MainWindow : Window
             return;
         }
         MediaLibraryList.ItemsSource = _mediaLibrary.List().Concat(_postQueue.List().SelectMany(x => x.MediaFiles)).Where(File.Exists).Distinct(StringComparer.OrdinalIgnoreCase).OrderBy(Path.GetFileName).ToArray();
-        PublishStatusText.Text = $"Added {added} media file(s) to library.";
+        MessageBox.Show($"Added {added} media file(s) to the Media Library.", "Media Library", MessageBoxButton.OK, MessageBoxImage.Information);
     }
 
     private void RemoveLibraryMedia(object sender, RoutedEventArgs e)
