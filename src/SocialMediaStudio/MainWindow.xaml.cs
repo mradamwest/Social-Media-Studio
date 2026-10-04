@@ -436,7 +436,18 @@ public partial class MainWindow : Window
         var post = _postQueue.Get(id);
         if (post is null) return;
         var copy = _postQueue.Create(new AutomationPostRequest(post.Caption, post.Networks, post.Title, post.MediaFiles));
-        PlannerList.ItemsSource = _postQueue.List().OrderBy(x => x.ScheduledFor ?? x.CreatedAt).ToArray();
+        _editingQueuedPostId = copy.Id;
+        TitleBox.Text = copy.Title ?? string.Empty;
+        CaptionBox.Text = copy.Caption;
+        _draft.MediaFiles.Clear(); _draft.MediaFiles.AddRange(copy.MediaFiles);
+        _draft.Networks.Clear(); foreach (var network in copy.Networks) _draft.Networks.Add(network);
+        _draft.ScheduledFor = null;
+        _draft.State = PublishState.Draft;
+        SetPlatformChecks(copy.Networks);
+        MediaDropText.Text = copy.MediaFiles.Count == 0 ? "No media selected." : string.Join(Environment.NewLine, copy.MediaFiles.Select(Path.GetFileName));
+        ScheduleDatePicker.SelectedDate = DateTime.Today.AddDays(1);
+        ScheduleTimeBox.Text = "6:00 PM";
+        ShowCreatePost(sender, e);
         PublishStatusText.Text = $"Duplicated as draft — {copy.Id[..8]}";
     }
 
