@@ -76,7 +76,7 @@ public sealed class FacebookPublisher : ISocialPublisher
                     page.TryGetProperty("id", out var id) ? id.GetString() ?? string.Empty : string.Empty,
                     page.TryGetProperty("name", out var name) ? name.GetString() ?? "Unnamed Page" : "Unnamed Page",
                     page.TryGetProperty("access_token", out var pageToken) ? pageToken.GetString() : null))
-                .Where(page => !string.IsNullOrWhiteSpace(page.Id))
+                .Where(page => !string.IsNullOrWhiteSpace(page.Id) && page.Id.Length <= 32 && page.Id.All(char.IsDigit))
                 .ToList();
             if (pages.Count == 0)
                 throw new InvalidOperationException("No Facebook Pages are available for this account.");
