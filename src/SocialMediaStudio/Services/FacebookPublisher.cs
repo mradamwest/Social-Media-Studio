@@ -40,6 +40,11 @@ public sealed class FacebookPublisher : ISocialPublisher
         var token = _tokens.LoadOAuth(Provider)
             ?? throw new InvalidOperationException("Facebook is not connected.");
         var selectedPage = _pageSelection.Load();
+        if (selectedPage is not null && (string.IsNullOrWhiteSpace(selectedPage.PageId) || string.IsNullOrWhiteSpace(selectedPage.AccessToken)))
+        {
+            _pageSelection.Delete();
+            selectedPage = null;
+        }
         var pageId = selectedPage?.PageId;
         if (!string.IsNullOrWhiteSpace(selectedPage?.AccessToken))
             _http.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", selectedPage.AccessToken);
