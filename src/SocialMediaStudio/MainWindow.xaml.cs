@@ -362,6 +362,12 @@ public partial class MainWindow : Window
                     _editingQueuedPostId = null;
             }
 
+            if (failures.Count == 0 && successes.Count > 0)
+            {
+                ResetComposer();
+                PublishStatusText.Text = $"Published successfully to {successes.Count} network(s). Ready for a new post.";
+            }
+
             if (failures.Count > 0)
                 MessageBox.Show(string.Join(Environment.NewLine, failures.Select(x => $"{x.Provider}: {x.Error}")),
                     "Publishing results", MessageBoxButton.OK, MessageBoxImage.Warning);
