@@ -160,7 +160,7 @@ public partial class MainWindow : Window
             MessageBox.Show("This item is not a standalone Media Library import.", "Media Library", MessageBoxButton.OK, MessageBoxImage.Information);
             return;
         }
-        MediaLibraryList.ItemsSource = _mediaLibrary.List().Concat(_postQueue.List().SelectMany(x => x.MediaFiles)).Distinct(StringComparer.OrdinalIgnoreCase).OrderBy(Path.GetFileName).ToArray();
+        MediaLibraryList.ItemsSource = _mediaLibrary.List().Concat(_postQueue.List().SelectMany(x => x.MediaFiles)).Where(File.Exists).Distinct(StringComparer.OrdinalIgnoreCase).OrderBy(Path.GetFileName).ToArray();
     }
 
     private void UseLibraryMedia(object sender, RoutedEventArgs e)
