@@ -73,6 +73,10 @@ public partial class MainWindow : Window
         AnalyticsConnectedAccounts.Text = Accounts.Count(x => x.State == ConnectionState.Connected).ToString();
         AnalyticsTotal.Text = posts.Count.ToString();
         AnalyticsMediaPosts.Text = posts.Count(x => x.MediaFiles.Count > 0).ToString();
+        var platformCounts = posts.SelectMany(x => x.Networks).GroupBy(x => x, StringComparer.OrdinalIgnoreCase).Select(g => new { Platform = g.Key, Count = g.Count() }).OrderByDescending(x => x.Count).ThenBy(x => x.Platform).ToArray();
+        AnalyticsPlatformSummary.Text = platformCounts.Length == 0
+            ? "No platform activity yet."
+            : string.Join("   •   ", platformCounts.Select(x => $"{x.Platform}: {x.Count}"));
         AnalyticsDrafts.Text = posts.Count(x => x.State == PublishState.Draft).ToString();
         AnalyticsPublished.Text = posts.Count(x => x.State == PublishState.Published).ToString();
         AnalyticsScheduled.Text = posts.Count(x => x.State == PublishState.Scheduled).ToString();
