@@ -11,6 +11,7 @@ public sealed class FacebookPublisher : ISocialPublisher
     private sealed record FacebookPage(string Id, string Name, string? AccessToken);
     private readonly HttpClient _http = new();
     private readonly SecureTokenStore _tokens;
+    private readonly FacebookPageSelectionStore _pageSelection = new();
     public FacebookPublisher(SecureTokenStore tokens) => _tokens = tokens;
     public string Provider => "Facebook";
 
@@ -38,7 +39,10 @@ public sealed class FacebookPublisher : ISocialPublisher
 
         var token = _tokens.LoadOAuth(Provider)
             ?? throw new InvalidOperationException("Facebook is not connected.");
-        var pageId = Environment.GetEnvironmentVariable("SOCIAL_MEDIA_STUDIO_FACEBOOK_PAGE_ID");
+        var selectedPage = _pageSelection.Load();
+        var pageId = selectedPage?.PageId;
+        if (!string.IsNullOrWhiteSpace(selectedPage?.AccessToken))
+            _http.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", selectedPage.AccessToken);
         if (string.IsNullOrWhiteSpace(pageId))
         {
             _http.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", token.AccessToken);
@@ -64,7 +68,8 @@ public sealed class FacebookPublisher : ISocialPublisher
         }
         if (string.IsNullOrWhiteSpace(pageId)) throw new InvalidOperationException("Facebook Page discovery did not return a Page ID.");
 
-        _http.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", token.AccessToken);
+        if (string.IsNullOrWhiteSpace(selectedPage?.AccessToken))
+            _http.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", token.AccessToken);
         HttpResponseMessage response;
         if (draft.MediaFiles.Count == 0)
         {
