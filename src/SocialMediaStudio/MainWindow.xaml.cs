@@ -45,6 +45,9 @@ public partial class MainWindow : Window
         _draft.Networks.Clear();
         _draft.ScheduledFor = null;
         _draft.State = PublishState.Draft;
+        _draft.YouTubePrivacy = "private";
+        if (YouTubePrivacyBox.Items.Count > 0)
+            YouTubePrivacyBox.SelectedIndex = 0;
         SetPlatformChecks(Array.Empty<string>());
         MediaDropText.Text = "Drag & drop video or images here" + Environment.NewLine + "or click to browse";
         ScheduleDatePicker.SelectedDate = DateTime.Today.AddDays(1);
