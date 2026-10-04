@@ -31,7 +31,7 @@ public partial class App : Application
         var tokens = new SecureTokenStore();
         var coordinator = new PublishingCoordinator(new ISocialPublisher[]
         {
-            new BlueskyPublisher(tokens), new XPublisher(tokens), new ThreadsPublisher(tokens),
+new XPublisher(tokens), new ThreadsPublisher(tokens),
             new FacebookPublisher(tokens), new InstagramPublisher(tokens), new YouTubePublisher(tokens), new LinkedInPublisher(tokens), new TikTokPublisher(tokens), new PinterestPublisher(tokens), new GoogleBusinessProfilePublisher(tokens)
         });
         var executor = new ScheduledPostExecutor(new PostQueueService(), new AutomationPublishingService(coordinator));
@@ -60,7 +60,6 @@ public partial class App : Application
         var tokens = new SecureTokenStore();
         var coordinator = new PublishingCoordinator(new ISocialPublisher[]
         {
-            new BlueskyPublisher(tokens),
             new XPublisher(tokens),
             new ThreadsPublisher(tokens),
             new FacebookPublisher(tokens),
