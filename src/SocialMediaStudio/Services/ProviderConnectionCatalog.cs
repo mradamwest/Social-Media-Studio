@@ -24,7 +24,7 @@ public static class ProviderConnectionCatalog
         if(!Definitions.TryGetValue(provider,out var d)) return false;
         var id=Environment.GetEnvironmentVariable(d.ClientIdSetting);
         if(string.IsNullOrWhiteSpace(id)) return false;
-        settings=new OAuthProviderSettings(d.Provider,id,d.AuthorizationEndpoint,d.TokenEndpoint,d.Scope);
+        settings=new OAuthProviderSettings(d.Provider,id,d.AuthorizationEndpoint,d.TokenEndpoint,d.Scope, UsePkce: d.UsePkce, RequestOfflineAccess: d.RequestOfflineAccess, ClientIdParameter: d.ClientIdParameter, ScopeSeparator: d.ScopeSeparator);
         return true;
     }
 }
