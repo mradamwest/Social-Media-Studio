@@ -430,6 +430,16 @@ public partial class MainWindow : Window
         PublishStatusText.Text = $"Editing saved post {post.Id[..8]}";
     }
 
+    private void DuplicatePlannerPost(object sender, RoutedEventArgs e)
+    {
+        if (sender is not Button button || button.Tag is not string id) return;
+        var post = _postQueue.Get(id);
+        if (post is null) return;
+        var copy = _postQueue.Create(new AutomationPostRequest(post.Caption, post.Networks, post.Title, post.MediaFiles));
+        PlannerList.ItemsSource = _postQueue.List().OrderBy(x => x.ScheduledFor ?? x.CreatedAt).ToArray();
+        PublishStatusText.Text = $"Duplicated as draft — {copy.Id[..8]}";
+    }
+
     private void DeletePlannerPost(object sender, RoutedEventArgs e)
     {
         if (sender is not Button button || button.Tag is not string id) return;
