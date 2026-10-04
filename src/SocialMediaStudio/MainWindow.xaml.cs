@@ -69,6 +69,7 @@ public partial class MainWindow : Window
     private void RefreshAnalytics(object sender, RoutedEventArgs e)
     {
         var posts = _postQueue.List();
+        AnalyticsTotal.Text = posts.Count.ToString();
         AnalyticsDrafts.Text = posts.Count(x => x.State == PublishState.Draft).ToString();
         AnalyticsPublished.Text = posts.Count(x => x.State == PublishState.Published).ToString();
         AnalyticsScheduled.Text = posts.Count(x => x.State == PublishState.Scheduled).ToString();
