@@ -165,7 +165,7 @@ public partial class MainWindow : Window
             MessageBox.Show("This item is not a standalone Media Library import.", "Media Library", MessageBoxButton.OK, MessageBoxImage.Information);
             return;
         }
-        PublishStatusText.Text = $"Removed {Path.GetFileName(path)} from Media Library. The original file was not deleted.";
+        MessageBox.Show($"{Path.GetFileName(path)} was removed from the Media Library. The original file was not deleted.", "Media Library", MessageBoxButton.OK, MessageBoxImage.Information);
         MediaLibraryList.ItemsSource = _mediaLibrary.List().Concat(_postQueue.List().SelectMany(x => x.MediaFiles)).Where(File.Exists).Distinct(StringComparer.OrdinalIgnoreCase).OrderBy(Path.GetFileName).ToArray();
     }
 
