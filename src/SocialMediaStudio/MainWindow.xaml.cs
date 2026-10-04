@@ -597,6 +597,12 @@ public partial class MainWindow : Window
             var picker = new FacebookPagePickerWindow(pages.Select(p => new FacebookPagePickerItem(p.Id, p.Name, p.Token)).ToArray()) { Owner = this };
             if (picker.ShowDialog() != true || picker.SelectedPage is null) return;
             _facebookPageSelection.Save(picker.SelectedPage.Id, picker.SelectedPage.Name, picker.SelectedPage.AccessToken);
+            var facebookAccount = Accounts.FirstOrDefault(a => a.Provider.Equals("Facebook", StringComparison.OrdinalIgnoreCase));
+            if (facebookAccount is not null)
+            {
+                facebookAccount.DisplayName = picker.SelectedPage.Name;
+                AccountsList.Items.Refresh();
+            }
             MessageBox.Show($"Facebook will publish to {picker.SelectedPage.Name}.", "Facebook Page selected", MessageBoxButton.OK, MessageBoxImage.Information);
         }
         catch (Exception ex)
