@@ -138,7 +138,7 @@ public partial class MainWindow : Window
         var newFiles = files.Where(x => !existing.Contains(x)).ToArray();
         if (newFiles.Length == 0)
         {
-            PublishStatusText.Text = "Selected media is already in the library.";
+            MessageBox.Show("Selected media is already in the Media Library.", "Media Library", MessageBoxButton.OK, MessageBoxImage.Information);
             return;
         }
         var added = _mediaLibrary.Add(newFiles);
