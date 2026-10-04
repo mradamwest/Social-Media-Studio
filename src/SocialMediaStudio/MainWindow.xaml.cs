@@ -327,6 +327,13 @@ public partial class MainWindow : Window
                 ? $"Published to {successes.Count} network(s)."
                 : $"{successes.Count} published, {failures.Count} need attention.";
 
+            if (_editingQueuedPostId is not null)
+            {
+                _postQueue.SetState(_editingQueuedPostId, _draft.State);
+                if (_draft.State == PublishState.Published)
+                    _editingQueuedPostId = null;
+            }
+
             if (failures.Count > 0)
                 MessageBox.Show(string.Join(Environment.NewLine, failures.Select(x => $"{x.Provider}: {x.Error}")),
                     "Publishing results", MessageBoxButton.OK, MessageBoxImage.Warning);
