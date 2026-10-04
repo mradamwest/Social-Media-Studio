@@ -70,7 +70,11 @@ public sealed class FacebookPublisher : ISocialPublisher
             _http.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", token.AccessToken);
             using var pagesResponse = await _http.GetAsync("https://graph.facebook.com/v24.0/me/accounts?fields=id,name,access_token&limit=100", cancellationToken);
             if (!pagesResponse.IsSuccessStatusCode)
+            {
+                if (pagesResponse.StatusCode is System.Net.HttpStatusCode.Unauthorized or System.Net.HttpStatusCode.Forbidden)
+                    throw new InvalidOperationException("Facebook Page access is unavailable. Reconnect Facebook and confirm Page permissions.");
                 throw new InvalidOperationException($"Facebook Page discovery failed ({(int)pagesResponse.StatusCode}).");
+            }
             using var pagesJson = System.Text.Json.JsonDocument.Parse(await pagesResponse.Content.ReadAsStringAsync(cancellationToken));
             if (!pagesJson.RootElement.TryGetProperty("data", out var pageData) || pageData.ValueKind != System.Text.Json.JsonValueKind.Array)
                 throw new InvalidOperationException("Facebook returned an unexpected Page list. Reconnect Facebook and try again.");
