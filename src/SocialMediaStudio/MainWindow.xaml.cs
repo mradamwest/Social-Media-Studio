@@ -408,7 +408,11 @@ public partial class MainWindow : Window
         _draft.ScheduledFor = post.ScheduledFor;
         _draft.State = post.State;
         MediaDropText.Text = post.MediaFiles.Count == 0 ? "No media selected." : string.Join(Environment.NewLine, post.MediaFiles.Select(Path.GetFileName));
-        CreatePostView.Visibility = Visibility.Visible; PlannerView.Visibility = Visibility.Collapsed; AccountsView.Visibility = Visibility.Collapsed;
+        CreatePostView.Visibility = Visibility.Visible;
+        PlannerView.Visibility = Visibility.Collapsed;
+        AccountsView.Visibility = Visibility.Collapsed;
+        MediaLibraryView.Visibility = Visibility.Collapsed;
+        AnalyticsView.Visibility = Visibility.Collapsed;
         if (post.ScheduledFor is DateTimeOffset scheduled)
         {
             var local = scheduled.ToLocalTime();
