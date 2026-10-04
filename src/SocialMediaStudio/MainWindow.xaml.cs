@@ -215,6 +215,10 @@ public partial class MainWindow : Window
     private void ShowAccounts(object sender, RoutedEventArgs e)
     {
         _accountStates.Restore(Accounts);
+        var savedFacebookPage = _facebookPageSelection.Load();
+        var facebookAccount = Accounts.FirstOrDefault(a => a.Provider.Equals("Facebook", StringComparison.OrdinalIgnoreCase));
+        if (facebookAccount is not null && facebookAccount.State == ConnectionState.Connected && savedFacebookPage is not null)
+            facebookAccount.DisplayName = savedFacebookPage.PageName;
         AccountsList.Items.Refresh();
         CreatePostView.Visibility = Visibility.Collapsed;
         AccountsView.Visibility = Visibility.Visible;
