@@ -19,6 +19,22 @@ public sealed class MediaLibraryService
         lock (_gate) return Load();
     }
 
+    public bool Remove(string path)
+    {
+        if (string.IsNullOrWhiteSpace(path)) return false;
+        lock (_gate)
+        {
+            var items = Load().ToList();
+            var removed = items.RemoveAll(x => string.Equals(x, path, StringComparison.OrdinalIgnoreCase)) > 0;
+            if (!removed) return false;
+            Directory.CreateDirectory(Path.GetDirectoryName(_path)!);
+            var temp = _path + ".tmp";
+            File.WriteAllText(temp, JsonSerializer.Serialize(items.OrderBy(Path.GetFileName), new JsonSerializerOptions { WriteIndented = true }));
+            File.Move(temp, _path, true);
+            return true;
+        }
+    }
+
     public int Add(IEnumerable<string> paths)
     {
         lock (_gate)
