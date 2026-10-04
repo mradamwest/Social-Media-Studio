@@ -21,6 +21,8 @@ public sealed class FacebookPublisher : ISocialPublisher
     public Task DisconnectAsync(CancellationToken cancellationToken = default)
     {
         _tokens.Delete(Provider);
+        _pageSelection.Delete();
+        _http.DefaultRequestHeaders.Authorization = null;
         return Task.CompletedTask;
     }
 
