@@ -48,7 +48,8 @@ public sealed class MediaLibraryService
         {
             var items = Load().ToHashSet(StringComparer.OrdinalIgnoreCase);
             var before = items.Count;
-            foreach (var path in paths.Where(File.Exists))
+            var allowed = new HashSet<string>(StringComparer.OrdinalIgnoreCase) { ".jpg", ".jpeg", ".png", ".webp", ".mp4", ".mov", ".m4v" };
+            foreach (var path in paths.Where(File.Exists).Where(path => allowed.Contains(Path.GetExtension(path))))
             {
                 try { items.Add(Path.GetFullPath(path)); }
                 catch { }
