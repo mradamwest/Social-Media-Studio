@@ -131,6 +131,7 @@ public partial class MainWindow : Window
         PlannerView.Visibility = Visibility.Collapsed;
         MediaLibraryView.Visibility = Visibility.Collapsed;
         AccountsView.Visibility = Visibility.Collapsed;
+        AnalyticsView.Visibility = Visibility.Collapsed;
         PublishStatusText.Text = "Media loaded from library.";
     }
 
