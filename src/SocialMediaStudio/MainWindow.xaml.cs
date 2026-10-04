@@ -14,6 +14,7 @@ public partial class MainWindow : Window
     private readonly OAuthTokenExchangeService _tokenExchange = new();
     private readonly SecureTokenStore _tokens = new();
     private readonly DeveloperCredentialStore _developerCredentials = new();
+    private readonly FacebookPageSelectionStore _facebookPageSelection = new();
     private readonly AccountStateService _accountStates;
     private readonly PostDraft _draft = new();
     private readonly PublishingCoordinator _publishing;
@@ -565,4 +566,37 @@ public partial class MainWindow : Window
         _accountStates.Disconnect(account);
         AccountsList.Items.Refresh();
     }
+    private async void ChooseFacebookPage(object sender, RoutedEventArgs e)
+    {
+        var token = _tokens.LoadOAuth("Facebook");
+        if (token is null)
+        {
+            MessageBox.Show("Connect Facebook first.", "Facebook Page", MessageBoxButton.OK, MessageBoxImage.Information);
+            return;
+        }
+        try
+        {
+            using var http = new System.Net.Http.HttpClient();
+            http.DefaultRequestHeaders.Authorization = new System.Net.Http.Headers.AuthenticationHeaderValue("Bearer", token.AccessToken);
+            using var response = await http.GetAsync("https://graph.facebook.com/v24.0/me/accounts?fields=id,name,access_token&limit=100");
+            if (!response.IsSuccessStatusCode) throw new InvalidOperationException($"Facebook Page discovery failed ({(int)response.StatusCode}).");
+            using var json = System.Text.Json.JsonDocument.Parse(await response.Content.ReadAsStringAsync());
+            var pages = json.RootElement.GetProperty("data").EnumerateArray().Select(p => new
+            {
+                Id = p.GetProperty("id").GetString() ?? "",
+                Name = p.TryGetProperty("name", out var n) ? n.GetString() ?? "Unnamed Page" : "Unnamed Page",
+                Token = p.TryGetProperty("access_token", out var t) ? t.GetString() ?? "" : ""
+            }).Where(p => p.Id.Length > 0 && p.Token.Length > 0).ToArray();
+            if (pages.Length == 0) throw new InvalidOperationException("No Facebook Pages are available for this account.");
+            var picker = new FacebookPagePickerWindow(pages.Select(p => new FacebookPagePickerItem(p.Id, p.Name, p.Token)).ToArray()) { Owner = this };
+            if (picker.ShowDialog() != true || picker.SelectedPage is null) return;
+            _facebookPageSelection.Save(picker.SelectedPage.Id, picker.SelectedPage.Name, picker.SelectedPage.AccessToken);
+            MessageBox.Show($"Facebook will publish to {picker.SelectedPage.Name}.", "Facebook Page selected", MessageBoxButton.OK, MessageBoxImage.Information);
+        }
+        catch (Exception ex)
+        {
+            MessageBox.Show(ex.Message, "Facebook Page selection failed", MessageBoxButton.OK, MessageBoxImage.Error);
+        }
+    }
+
 }
