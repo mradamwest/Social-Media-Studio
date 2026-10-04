@@ -599,9 +599,11 @@ public partial class MainWindow : Window
             using var response = await http.GetAsync("https://graph.facebook.com/v24.0/me/accounts?fields=id,name,access_token&limit=100");
             if (!response.IsSuccessStatusCode) throw new InvalidOperationException($"Facebook Page discovery failed ({(int)response.StatusCode}).");
             using var json = System.Text.Json.JsonDocument.Parse(await response.Content.ReadAsStringAsync());
-            var pages = json.RootElement.GetProperty("data").EnumerateArray().Select(p => new
+            if (!json.RootElement.TryGetProperty("data", out var pageData) || pageData.ValueKind != System.Text.Json.JsonValueKind.Array)
+                throw new InvalidOperationException("Facebook returned an unexpected Page list. Reconnect Facebook and try again.");
+            var pages = pageData.EnumerateArray().Select(p => new
             {
-                Id = p.GetProperty("id").GetString() ?? "",
+                Id = p.TryGetProperty("id", out var id) ? id.GetString() ?? "" : "",
                 Name = p.TryGetProperty("name", out var n) ? n.GetString() ?? "Unnamed Page" : "Unnamed Page",
                 Token = p.TryGetProperty("access_token", out var t) ? t.GetString() ?? "" : ""
             }).Where(p => p.Id.Length > 0 && p.Token.Length > 0).ToArray();
