@@ -25,7 +25,7 @@ public sealed class SecureTokenStore
         return bytes is null ? null : Encoding.UTF8.GetString(bytes);
     }
 
-    public void SaveOAuth(string provider, OAuthTokenResult token)
+    public void SaveBlueskySession(string accessJwt, string refreshJwt, string did, string handle)\n    {\n        var payload = JsonSerializer.Serialize(new StoredOAuthToken(accessJwt, refreshJwt, null));\n        SaveProtected("Bluesky", Encoding.UTF8.GetBytes(payload));\n        Save("BlueskyProfile", JsonSerializer.Serialize(new { Did = did, Handle = handle }));\n    }\n\n    public (string Did, string Handle)? LoadBlueskyProfile()\n    {\n        var payload = Load("BlueskyProfile");\n        if (string.IsNullOrWhiteSpace(payload)) return null;\n        try\n        {\n            using var json = JsonDocument.Parse(payload);\n            return (json.RootElement.GetProperty("Did").GetString() ?? "", json.RootElement.GetProperty("Handle").GetString() ?? "");\n        }\n        catch { return null; }\n    }\n\n    public void SaveOAuth(string provider, OAuthTokenResult token)
     {
         var payload = JsonSerializer.Serialize(new StoredOAuthToken(
             token.AccessToken, token.RefreshToken, token.ExpiresAt));
