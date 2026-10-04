@@ -391,7 +391,8 @@ public partial class MainWindow : Window
         finally
         {
             PostNowButton.IsEnabled = true;
-            RefreshAnalytics();
+            if (AnalyticsView.Visibility == Visibility.Visible)
+                RefreshAnalytics();
         }
     }
 
