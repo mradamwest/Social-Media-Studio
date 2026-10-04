@@ -128,7 +128,7 @@ public partial class MainWindow : Window
             Filter = "Media files|*.jpg;*.jpeg;*.png;*.webp;*.mp4;*.mov;*.m4v|All files|*.*"
         };
         if (dialog.ShowDialog() != true) return;
-        var files = dialog.FileNames.Where(File.Exists).Where(f => SupportedMediaExtensions.Contains(Path.GetExtension(f))).ToArray();
+        var files = dialog.FileNames.Where(File.Exists).Where(f => SupportedMediaExtensions.Contains(Path.GetExtension(f))).Distinct(StringComparer.OrdinalIgnoreCase).ToArray();
         if (files.Length == 0)
         {
             MessageBox.Show("No supported media files were selected.", "Media Library", MessageBoxButton.OK, MessageBoxImage.Information);
