@@ -13,7 +13,9 @@ public sealed record OAuthProviderSettings(
     string Scope,
     string RedirectPath = "/callback/",
     bool UsePkce = true,
-    bool RequestOfflineAccess = false);
+    bool RequestOfflineAccess = false,
+    string ClientIdParameter = "client_id",
+    string ScopeSeparator = " ");
 
 public sealed record OAuthAuthorizationResult(
     string Code,
@@ -34,9 +36,9 @@ public sealed class OAuthConnectionService
         var redirectUri = $"http://127.0.0.1:{port}{settings.RedirectPath}";
         var authorizationUrl =
             $"{settings.AuthorizationEndpoint}?response_type=code" +
-            $"&client_id={Uri.EscapeDataString(settings.ClientId)}" +
+            $"&{settings.ClientIdParameter}={Uri.EscapeDataString(settings.ClientId)}" +
             $"&redirect_uri={Uri.EscapeDataString(redirectUri)}" +
-            $"&scope={Uri.EscapeDataString(settings.Scope)}" +
+            $"&scope={Uri.EscapeDataString(NormalizeScope(settings.Scope, settings.ScopeSeparator))}" +
             $"&state={Uri.EscapeDataString(state)}" +
             (settings.RequestOfflineAccess ? "&access_type=offline&prompt=consent" : string.Empty) +
             (settings.UsePkce ? $"&code_challenge={Uri.EscapeDataString(codeChallenge)}&code_challenge_method=S256" : string.Empty);
@@ -65,6 +67,9 @@ public sealed class OAuthConnectionService
 
         return new OAuthAuthorizationResult(code, returnedState, redirectUri, settings.UsePkce ? codeVerifier : string.Empty);
     }
+
+    private static string NormalizeScope(string scope, string separator) =>
+        string.Join(separator, scope.Split(new[] { ' ', ',' }, StringSplitOptions.RemoveEmptyEntries));
 
     private static string Base64Url(byte[] bytes) =>
         Convert.ToBase64String(bytes).TrimEnd('=').Replace('+', '-').Replace('/', '_');
