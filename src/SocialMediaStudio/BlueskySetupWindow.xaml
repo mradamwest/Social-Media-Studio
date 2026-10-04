@@ -1,0 +1,12 @@
+<Window x:Class="SocialMediaStudio.BlueskySetupWindow"
+ xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+ xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+ Title="Connect Bluesky" Height="310" Width="500" WindowStartupLocation="CenterOwner" ResizeMode="NoResize">
+ <Grid Margin="24"><Grid.RowDefinitions><RowDefinition Height="Auto"/><RowDefinition Height="Auto"/><RowDefinition Height="Auto"/><RowDefinition Height="*"/><RowDefinition Height="Auto"/></Grid.RowDefinitions>
+  <TextBlock Text="Connect Bluesky" FontSize="22" FontWeight="SemiBold" Margin="0,0,0,18"/>
+  <StackPanel Grid.Row="1" Margin="0,0,0,12"><TextBlock Text="Handle" Margin="0,0,0,5"/><TextBox x:Name="HandleBox" Height="32" ToolTip="example.bsky.social"/></StackPanel>
+  <StackPanel Grid.Row="2"><TextBlock Text="App Password" Margin="0,0,0,5"/><PasswordBox x:Name="PasswordBox" Height="32"/></StackPanel>
+  <TextBlock Grid.Row="3" Margin="0,14,0,0" TextWrapping="Wrap" Foreground="#5B6472" Text="Use a Bluesky App Password, not your main account password. It is exchanged for a session and is not saved by Social Media Studio."/>
+  <StackPanel Grid.Row="4" Orientation="Horizontal" HorizontalAlignment="Right"><Button Content="Cancel" Width="90" Margin="0,0,8,0" IsCancel="True"/><Button Content="Connect" Width="100" IsDefault="True" Click="ConnectClick"/></StackPanel>
+ </Grid>
+</Window>
