@@ -1,0 +1,16 @@
+<Window x:Class="SocialMediaStudio.FacebookPagePickerWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        Title="Choose Facebook Page" Height="360" Width="520"
+        WindowStartupLocation="CenterOwner" ResizeMode="NoResize">
+    <Grid Margin="24">
+        <Grid.RowDefinitions><RowDefinition Height="Auto"/><RowDefinition Height="Auto"/><RowDefinition Height="*"/><RowDefinition Height="Auto"/></Grid.RowDefinitions>
+        <TextBlock Text="Choose Facebook Page" FontSize="24" FontWeight="SemiBold" Foreground="#17324D"/>
+        <TextBlock Grid.Row="1" Text="Social Media Studio will publish Facebook posts to this Page." Margin="0,8,0,18" Foreground="#52677A"/>
+        <ListBox Grid.Row="2" x:Name="PagesList" DisplayMemberPath="Name" MinHeight="180"/>
+        <StackPanel Grid.Row="3" Orientation="Horizontal" HorizontalAlignment="Right" Margin="0,18,0,0">
+            <Button Content="Cancel" Width="90" Height="36" Margin="0,0,8,0" Click="CancelClick"/>
+            <Button Content="Use This Page" Width="120" Height="36" Click="SaveClick"/>
+        </StackPanel>
+    </Grid>
+</Window>
