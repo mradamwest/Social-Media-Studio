@@ -72,6 +72,8 @@ public sealed class FacebookPublisher : ISocialPublisher
             if (!string.IsNullOrWhiteSpace(page.AccessToken))
             {
                 effectivePageToken = page.AccessToken;
+                _pageSelection.Save(page.Id, page.Name, effectivePageToken);
+                selectedPage = new FacebookPageSelection(page.Id, page.Name, effectivePageToken);
                 _http.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", effectivePageToken);
             }
         }
