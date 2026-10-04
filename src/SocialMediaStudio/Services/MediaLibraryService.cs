@@ -72,7 +72,11 @@ public sealed class MediaLibraryService
         try
         {
             return (JsonSerializer.Deserialize<string[]>(File.ReadAllText(_path)) ?? [])
-                .Where(File.Exists).Distinct(StringComparer.OrdinalIgnoreCase).ToArray();
+                .Where(File.Exists)
+                .Select(path => { try { return Path.GetFullPath(path); } catch { return null; } })
+                .Where(path => path is not null)
+                .Select(path => path!)
+                .Distinct(StringComparer.OrdinalIgnoreCase).ToArray();
         }
         catch
         {
