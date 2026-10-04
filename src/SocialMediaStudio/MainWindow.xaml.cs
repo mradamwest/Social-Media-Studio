@@ -419,7 +419,10 @@ public partial class MainWindow : Window
         if (MessageBox.Show("Delete this saved post?", "Planner", MessageBoxButton.YesNo, MessageBoxImage.Question) != MessageBoxResult.Yes) return;
         _postQueue.Delete(id);
         if (string.Equals(_editingQueuedPostId, id, StringComparison.OrdinalIgnoreCase))
+        {
             _editingQueuedPostId = null;
+            ResetComposer();
+        }
         PlannerList.ItemsSource = _postQueue.List().OrderBy(x => x.ScheduledFor ?? x.CreatedAt).ToArray();
     }
 
