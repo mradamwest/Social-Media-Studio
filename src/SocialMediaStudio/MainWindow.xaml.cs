@@ -607,7 +607,7 @@ public partial class MainWindow : Window
                 Name = p.TryGetProperty("name", out var n) ? n.GetString() ?? "Unnamed Page" : "Unnamed Page",
                 Token = p.TryGetProperty("access_token", out var t) ? t.GetString() ?? "" : ""
             }).Where(p => p.Id.Length > 0 && p.Id.Length <= 32 && p.Id.All(char.IsDigit) && p.Token.Length > 0).ToArray();
-            if (pages.Length == 0) throw new InvalidOperationException("No Facebook Pages are available for this account.");
+            if (pages.Length == 0) throw new InvalidOperationException("No valid Facebook Pages are available for this account. Check Page permissions and reconnect Facebook.");
             var picker = new FacebookPagePickerWindow(pages.Select(p => new FacebookPagePickerItem(p.Id, p.Name, p.Token)).ToArray()) { Owner = this };
             if (picker.ShowDialog() != true || picker.SelectedPage is null) return;
             _facebookPageSelection.Save(picker.SelectedPage.Id, picker.SelectedPage.Name, picker.SelectedPage.AccessToken);
