@@ -38,6 +38,12 @@ public sealed class FacebookPublisher : ISocialPublisher
         await ValidateAsync(draft, cancellationToken);
         if (draft.MediaFiles.Count > 1)
             throw new InvalidOperationException("Facebook currently supports one media file per post.");
+        if (draft.MediaFiles.Count == 1)
+        {
+            var extension = Path.GetExtension(draft.MediaFiles[0]).ToLowerInvariant();
+            if (extension is not ".jpg" and not ".jpeg" and not ".png" and not ".mp4" and not ".mov" and not ".m4v")
+                throw new InvalidOperationException("Facebook media must be JPG, JPEG, PNG, MP4, MOV, or M4V.");
+        }
 
         var token = _tokens.LoadOAuth(Provider)
             ?? throw new InvalidOperationException("Facebook is not connected.");
