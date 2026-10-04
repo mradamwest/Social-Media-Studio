@@ -126,7 +126,8 @@ public partial class MainWindow : Window
             MessageBox.Show("That media file is no longer available.", "Media Library", MessageBoxButton.OK, MessageBoxImage.Information);
             return;
         }
-        SetMediaFiles(new[] { path });
+        var existing = _draft.MediaFiles.Concat(new[] { path });
+        SetMediaFiles(existing);
         CreatePostView.Visibility = Visibility.Visible;
         PlannerView.Visibility = Visibility.Collapsed;
         MediaLibraryView.Visibility = Visibility.Collapsed;
