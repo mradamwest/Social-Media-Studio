@@ -128,7 +128,11 @@ public partial class MainWindow : Window
         };
         if (dialog.ShowDialog() != true) return;
         var files = dialog.FileNames.Where(File.Exists).Where(f => SupportedMediaExtensions.Contains(Path.GetExtension(f))).ToArray();
-        if (files.Length == 0) return;
+        if (files.Length == 0)
+        {
+            MessageBox.Show("No supported media files were selected.", "Media Library", MessageBoxButton.OK, MessageBoxImage.Information);
+            return;
+        }
         var existing = _postQueue.List().SelectMany(x => x.MediaFiles).ToHashSet(StringComparer.OrdinalIgnoreCase);
         var newFiles = files.Where(x => !existing.Contains(x)).ToArray();
         if (newFiles.Length == 0)
