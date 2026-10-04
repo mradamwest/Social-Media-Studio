@@ -14,7 +14,7 @@ public static class ProviderConnectionCatalog
             ["TikTok"]=new("TikTok","SOCIAL_MEDIA_STUDIO_TIKTOK_CLIENT_KEY","https://www.tiktok.com/v2/auth/authorize/","https://open.tiktokapis.com/v2/oauth/token/","user.info.basic video.publish video.upload","https://developers.tiktok.com/", ClientIdParameter: "client_key", ScopeSeparator: ","),
             ["LinkedIn"]=new("LinkedIn","SOCIAL_MEDIA_STUDIO_LINKEDIN_CLIENT_ID","https://www.linkedin.com/oauth/v2/authorization","https://www.linkedin.com/oauth/v2/accessToken","openid profile w_member_social","https://www.linkedin.com/developers/"),
             ["X"]=new("X","SOCIAL_MEDIA_STUDIO_X_CLIENT_ID","https://twitter.com/i/oauth2/authorize","https://api.x.com/2/oauth2/token","tweet.read tweet.write users.read offline.access","https://developer.x.com/"),
-            ["Pinterest"]=new("Pinterest","SOCIAL_MEDIA_STUDIO_PINTEREST_APP_ID","https://www.pinterest.com/oauth/","https://api.pinterest.com/v5/oauth/token","boards:read pins:read pins:write user_accounts:read","https://developers.pinterest.com/"),
+            ["Pinterest"]=new("Pinterest","SOCIAL_MEDIA_STUDIO_PINTEREST_APP_ID","https://www.pinterest.com/oauth/","https://api.pinterest.com/v5/oauth/token","boards:read pins:read pins:write user_accounts:read","https://developers.pinterest.com/","SOCIAL_MEDIA_STUDIO_PINTEREST_APP_SECRET", UsePkce: false),
             ["Google Business Profile"]=new("Google Business Profile","SOCIAL_MEDIA_STUDIO_GOOGLE_CLIENT_ID","https://accounts.google.com/o/oauth2/v2/auth","https://oauth2.googleapis.com/token","https://www.googleapis.com/auth/business.manage","https://console.cloud.google.com/")
         };
 
