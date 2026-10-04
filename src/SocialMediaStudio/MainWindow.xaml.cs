@@ -397,6 +397,11 @@ public partial class MainWindow : Window
         if (sender is not Button button || button.Tag is not string id) return;
         var post = _postQueue.Get(id);
         if (post is null) return;
+        if (post.State is PublishState.Publishing or PublishState.Published)
+        {
+            MessageBox.Show("Published or currently publishing posts are read-only. Duplicate the post to create a new editable copy.", "Planner", MessageBoxButton.OK, MessageBoxImage.Information);
+            return;
+        }
         _editingQueuedPostId = post.Id;
         TitleBox.Text = post.Title ?? string.Empty;
         CaptionBox.Text = post.Caption;
