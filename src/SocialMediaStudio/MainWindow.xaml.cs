@@ -142,7 +142,7 @@ public partial class MainWindow : Window
             return;
         }
         var added = _mediaLibrary.Add(newFiles);
-        MediaLibraryList.ItemsSource = _mediaLibrary.List().Concat(_postQueue.List().SelectMany(x => x.MediaFiles)).Distinct(StringComparer.OrdinalIgnoreCase).OrderBy(Path.GetFileName).ToArray();
+        MediaLibraryList.ItemsSource = _mediaLibrary.List().Concat(_postQueue.List().SelectMany(x => x.MediaFiles)).Where(File.Exists).Distinct(StringComparer.OrdinalIgnoreCase).OrderBy(Path.GetFileName).ToArray();
         PublishStatusText.Text = $"Added {added} media file(s) to library.";
     }
 
