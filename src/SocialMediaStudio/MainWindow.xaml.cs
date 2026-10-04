@@ -142,6 +142,11 @@ public partial class MainWindow : Window
             return;
         }
         var added = _mediaLibrary.Add(newFiles);
+        if (added == 0)
+        {
+            MessageBox.Show("No new supported media files were added.", "Media Library", MessageBoxButton.OK, MessageBoxImage.Information);
+            return;
+        }
         MediaLibraryList.ItemsSource = _mediaLibrary.List().Concat(_postQueue.List().SelectMany(x => x.MediaFiles)).Where(File.Exists).Distinct(StringComparer.OrdinalIgnoreCase).OrderBy(Path.GetFileName).ToArray();
         PublishStatusText.Text = $"Added {added} media file(s) to library.";
     }
