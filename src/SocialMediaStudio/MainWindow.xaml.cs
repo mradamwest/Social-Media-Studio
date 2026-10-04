@@ -74,6 +74,9 @@ public partial class MainWindow : Window
         AnalyticsPublished.Text = posts.Count(x => x.State == PublishState.Published).ToString();
         AnalyticsScheduled.Text = posts.Count(x => x.State == PublishState.Scheduled).ToString();
         AnalyticsFailed.Text = posts.Count(x => x.State is PublishState.Failed or PublishState.NeedsAttention).ToString();
+        var completed = posts.Count(x => x.State is PublishState.Published or PublishState.Failed or PublishState.NeedsAttention);
+        var published = posts.Count(x => x.State == PublishState.Published);
+        AnalyticsSuccessRate.Text = completed == 0 ? "—" : $"{(int)Math.Round(published * 100d / completed)}%";
     }
 
     private void ShowAnalytics(object sender, RoutedEventArgs e)
