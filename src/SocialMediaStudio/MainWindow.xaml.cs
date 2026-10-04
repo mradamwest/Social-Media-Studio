@@ -149,9 +149,15 @@ public partial class MainWindow : Window
     private void RemoveLibraryMedia(object sender, RoutedEventArgs e)
     {
         if (sender is not Button button || button.Tag is not string path) return;
+        var referencedByPost = _postQueue.List().Any(x => x.MediaFiles.Contains(path, StringComparer.OrdinalIgnoreCase));
+        if (referencedByPost)
+        {
+            MessageBox.Show("This media is still used by a saved post. Remove it from that post first.", "Media Library", MessageBoxButton.OK, MessageBoxImage.Information);
+            return;
+        }
         if (!_mediaLibrary.Remove(path))
         {
-            MessageBox.Show("This item belongs to a saved post and cannot be removed from the standalone library.", "Media Library", MessageBoxButton.OK, MessageBoxImage.Information);
+            MessageBox.Show("This item is not a standalone Media Library import.", "Media Library", MessageBoxButton.OK, MessageBoxImage.Information);
             return;
         }
         MediaLibraryList.ItemsSource = _mediaLibrary.List().Concat(_postQueue.List().SelectMany(x => x.MediaFiles)).Distinct(StringComparer.OrdinalIgnoreCase).OrderBy(Path.GetFileName).ToArray();
