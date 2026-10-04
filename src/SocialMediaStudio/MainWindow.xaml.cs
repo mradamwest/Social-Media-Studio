@@ -101,10 +101,7 @@ public partial class MainWindow : Window
 
     private void ShowAnalytics(object sender, RoutedEventArgs e)
     {
-        var posts = _postQueue.List();
-        AnalyticsPublished.Text = posts.Count(x => x.State == PublishState.Published).ToString();
-        AnalyticsScheduled.Text = posts.Count(x => x.State == PublishState.Scheduled).ToString();
-        AnalyticsFailed.Text = posts.Count(x => x.State is PublishState.Failed or PublishState.NeedsAttention).ToString();
+        RefreshAnalytics(sender, e);
         CreatePostView.Visibility = Visibility.Collapsed;
         PlannerView.Visibility = Visibility.Collapsed;
         MediaLibraryView.Visibility = Visibility.Collapsed;
