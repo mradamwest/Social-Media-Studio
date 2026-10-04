@@ -564,10 +564,12 @@ public partial class MainWindow : Window
         if (sender is not Button button || button.Tag is not string provider) return;
         var account = Accounts.First(a => a.Provider == provider);
         _accountStates.Disconnect(account);
+        if (provider.Equals("Facebook", StringComparison.OrdinalIgnoreCase)) _facebookPageSelection.Delete();
         AccountsList.Items.Refresh();
     }
     private async void ChooseFacebookPage(object sender, RoutedEventArgs e)
     {
+        if (sender is Button chooseButton && chooseButton.Tag is string taggedProvider && !taggedProvider.Equals("Facebook", StringComparison.OrdinalIgnoreCase)) return;
         var token = _tokens.LoadOAuth("Facebook");
         if (token is null)
         {
