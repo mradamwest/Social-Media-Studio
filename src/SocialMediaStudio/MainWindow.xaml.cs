@@ -284,8 +284,16 @@ public partial class MainWindow : Window
             account.DisplayName = "Connected";
             AccountsList.Items.Refresh();
 
-            MessageBox.Show($"{provider} is connected securely.",
-                $"{provider} connected", MessageBoxButton.OK, MessageBoxImage.Information);
+            if (provider.Equals("Facebook", StringComparison.OrdinalIgnoreCase))
+            {
+                MessageBox.Show("Facebook is connected securely. Open Connected Accounts and choose the Page you want Social Media Studio to publish to before your first post.",
+                    "Facebook connected", MessageBoxButton.OK, MessageBoxImage.Information);
+            }
+            else
+            {
+                MessageBox.Show($"{provider} is connected securely.",
+                    $"{provider} connected", MessageBoxButton.OK, MessageBoxImage.Information);
+            }
         }
         catch (Exception ex)
         {
