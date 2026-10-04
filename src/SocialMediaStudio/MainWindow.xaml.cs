@@ -267,7 +267,9 @@ public partial class MainWindow : Window
             definition.TokenEndpoint,
             definition.Scope,
             UsePkce: definition.UsePkce,
-            RequestOfflineAccess: definition.RequestOfflineAccess);
+            RequestOfflineAccess: definition.RequestOfflineAccess,
+            ClientIdParameter: definition.ClientIdParameter,
+            ScopeSeparator: definition.ScopeSeparator);
 
         try
         {
