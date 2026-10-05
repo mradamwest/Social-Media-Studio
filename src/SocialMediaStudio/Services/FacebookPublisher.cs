@@ -35,203 +35,211 @@ public sealed class FacebookPublisher : ISocialPublisher
 
     public async Task PublishAsync(PostDraft draft, CancellationToken cancellationToken = default)
     {
-        await ValidateAsync(draft, cancellationToken);
-        _http.DefaultRequestHeaders.Authorization = null;
-        if (draft.MediaFiles.Count > 1)
-            throw new InvalidOperationException("Facebook currently supports one media file per post.");
-        if (draft.MediaFiles.Count == 1)
+        try
         {
-            if (!File.Exists(draft.MediaFiles[0]))
+            await ValidateAsync(draft, cancellationToken);
+            _http.DefaultRequestHeaders.Authorization = null;
+            if (draft.MediaFiles.Count > 1)
+                throw new InvalidOperationException("Facebook currently supports one media file per post.");
+            if (draft.MediaFiles.Count == 1)
             {
-                _http.DefaultRequestHeaders.Authorization = null;
-                throw new InvalidOperationException("Facebook media file was not found.");
+                if (!File.Exists(draft.MediaFiles[0]))
+                {
+                    _http.DefaultRequestHeaders.Authorization = null;
+                    throw new InvalidOperationException("Facebook media file was not found.");
+                }
+                var extension = Path.GetExtension(draft.MediaFiles[0]).ToLowerInvariant();
+                if (extension is not ".jpg" and not ".jpeg" and not ".png" and not ".mp4" and not ".mov" and not ".m4v")
+                {
+                    _http.DefaultRequestHeaders.Authorization = null;
+                    throw new InvalidOperationException("Facebook media must be JPG, JPEG, PNG, MP4, MOV, or M4V.");
+                }
             }
-            var extension = Path.GetExtension(draft.MediaFiles[0]).ToLowerInvariant();
-            if (extension is not ".jpg" and not ".jpeg" and not ".png" and not ".mp4" and not ".mov" and not ".m4v")
-            {
-                _http.DefaultRequestHeaders.Authorization = null;
-                throw new InvalidOperationException("Facebook media must be JPG, JPEG, PNG, MP4, MOV, or M4V.");
-            }
-        }
 
-        var token = _tokens.LoadOAuth(Provider)
-            ?? throw new InvalidOperationException("Facebook is not connected.");
-        if (string.IsNullOrWhiteSpace(token.AccessToken))
-        {
-            _tokens.Delete(Provider);
-            _pageSelection.Delete();
-            _http.DefaultRequestHeaders.Authorization = null;
-            throw new InvalidOperationException("Facebook authorization is missing. Reconnect Facebook in Connected Accounts before publishing.");
-        }
-        if (token.ExpiresAt is not null && token.ExpiresAt <= DateTimeOffset.UtcNow)
-        {
-            _pageSelection.Delete();
-            _http.DefaultRequestHeaders.Authorization = null;
-            throw new InvalidOperationException("Facebook connection has expired. Reconnect Facebook in Connected Accounts before publishing.");
-        }
-        var selectedPage = _pageSelection.Load();
-        if (selectedPage is not null && (string.IsNullOrWhiteSpace(selectedPage.PageId) || string.IsNullOrWhiteSpace(selectedPage.AccessToken)))
-        {
-            _pageSelection.Delete();
-            selectedPage = null;
-        }
-        var pageId = selectedPage?.PageId;
-        var effectivePageToken = selectedPage?.AccessToken;
-        if (!string.IsNullOrWhiteSpace(effectivePageToken))
-            _http.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", effectivePageToken);
-        if (string.IsNullOrWhiteSpace(pageId))
-        {
-            _http.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", token.AccessToken);
-            using var pagesResponse = await _http.GetAsync("https://graph.facebook.com/v24.0/me/accounts?fields=id,name,access_token&limit=100", cancellationToken);
-            if (!pagesResponse.IsSuccessStatusCode)
+            var token = _tokens.LoadOAuth(Provider)
+                ?? throw new InvalidOperationException("Facebook is not connected.");
+            if (string.IsNullOrWhiteSpace(token.AccessToken))
             {
-                if (pagesResponse.StatusCode is System.Net.HttpStatusCode.Unauthorized or System.Net.HttpStatusCode.Forbidden)
+                _tokens.Delete(Provider);
+                _pageSelection.Delete();
+                _http.DefaultRequestHeaders.Authorization = null;
+                throw new InvalidOperationException("Facebook authorization is missing. Reconnect Facebook in Connected Accounts before publishing.");
+            }
+            if (token.ExpiresAt is not null && token.ExpiresAt <= DateTimeOffset.UtcNow)
+            {
+                _pageSelection.Delete();
+                _http.DefaultRequestHeaders.Authorization = null;
+                throw new InvalidOperationException("Facebook connection has expired. Reconnect Facebook in Connected Accounts before publishing.");
+            }
+            var selectedPage = _pageSelection.Load();
+            if (selectedPage is not null && (string.IsNullOrWhiteSpace(selectedPage.PageId) || string.IsNullOrWhiteSpace(selectedPage.AccessToken)))
+            {
+                _pageSelection.Delete();
+                selectedPage = null;
+            }
+            var pageId = selectedPage?.PageId;
+            var effectivePageToken = selectedPage?.AccessToken;
+            if (!string.IsNullOrWhiteSpace(effectivePageToken))
+                _http.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", effectivePageToken);
+            if (string.IsNullOrWhiteSpace(pageId))
+            {
+                _http.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", token.AccessToken);
+                using var pagesResponse = await _http.GetAsync("https://graph.facebook.com/v24.0/me/accounts?fields=id,name,access_token&limit=100", cancellationToken);
+                if (!pagesResponse.IsSuccessStatusCode)
+                {
+                    if (pagesResponse.StatusCode is System.Net.HttpStatusCode.Unauthorized or System.Net.HttpStatusCode.Forbidden)
+                    {
+                        _pageSelection.Delete();
+                        _http.DefaultRequestHeaders.Authorization = null;
+                        throw new InvalidOperationException("Facebook Page access is unavailable. Reconnect Facebook and confirm Page permissions.");
+                    }
+                    throw new InvalidOperationException($"Facebook Page discovery failed ({(int)pagesResponse.StatusCode}).");
+                }
+                System.Text.Json.JsonDocument pagesJson;
+                try
+                {
+                    pagesJson = System.Text.Json.JsonDocument.Parse(await pagesResponse.Content.ReadAsStringAsync(cancellationToken));
+                }
+                catch (System.Text.Json.JsonException)
                 {
                     _pageSelection.Delete();
                     _http.DefaultRequestHeaders.Authorization = null;
-                    throw new InvalidOperationException("Facebook Page access is unavailable. Reconnect Facebook and confirm Page permissions.");
+                    throw new InvalidOperationException("Facebook returned an invalid Page response. Reconnect Facebook and try again.");
                 }
-                throw new InvalidOperationException($"Facebook Page discovery failed ({(int)pagesResponse.StatusCode}).");
+                using (pagesJson)
+                {
+                if (pagesJson.RootElement.ValueKind != System.Text.Json.JsonValueKind.Object ||
+                    !pagesJson.RootElement.TryGetProperty("data", out var pageData) || pageData.ValueKind != System.Text.Json.JsonValueKind.Array)
+                {
+                    _pageSelection.Delete();
+                    _http.DefaultRequestHeaders.Authorization = null;
+                    throw new InvalidOperationException("Facebook returned an unexpected Page list. Reconnect Facebook and try again.");
+                }
+                var pages = pageData.EnumerateArray()
+                    .Where(page => page.ValueKind == System.Text.Json.JsonValueKind.Object)
+                    .Select(page => new FacebookPage(
+                        ReadPageString(page, "id") ?? string.Empty,
+                        ReadPageString(page, "name") ?? "Unnamed Page",
+                        ReadPageString(page, "access_token")))
+                    .Where(page => !string.IsNullOrWhiteSpace(page.Id) && page.Id.Length <= 32 && page.Id.All(char.IsDigit))
+                    .ToList();
+                if (pages.Count == 0)
+                {
+                    _pageSelection.Delete();
+                    _http.DefaultRequestHeaders.Authorization = null;
+                    throw new InvalidOperationException("No valid Facebook Pages are available for this account. Check Page permissions and reconnect Facebook.");
+                }
+                if (pages.Count > 1)
+                {
+                    _pageSelection.Delete();
+                    _http.DefaultRequestHeaders.Authorization = null;
+                    throw new InvalidOperationException($"Multiple Facebook Pages are available ({string.Join(", ", pages.Select(page => page.Name))}). Select a Page in Connected Accounts before publishing.");
+                }
+                var page = pages[0];
+                pageId = page.Id;
+                if (string.IsNullOrWhiteSpace(page.AccessToken))
+                {
+                    _pageSelection.Delete();
+                    _http.DefaultRequestHeaders.Authorization = null;
+                    throw new InvalidOperationException("Facebook did not provide access for the available Page. Reconnect Facebook and confirm Page permissions.");
+                }
+                effectivePageToken = page.AccessToken;
+                _pageSelection.Save(page.Id, page.Name, effectivePageToken);
+                selectedPage = new FacebookPageSelection(page.Id, page.Name, effectivePageToken);
+                _http.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", effectivePageToken);
+                }
             }
-            System.Text.Json.JsonDocument pagesJson;
+            if (string.IsNullOrWhiteSpace(pageId))
+            {
+                _pageSelection.Delete();
+                _http.DefaultRequestHeaders.Authorization = null;
+                throw new InvalidOperationException("Facebook Page discovery did not return a Page ID.");
+            }
+            if (pageId.Any(ch => !char.IsDigit(ch)))
+            {
+                _pageSelection.Delete();
+                _http.DefaultRequestHeaders.Authorization = null;
+                throw new InvalidOperationException("The selected Facebook Page ID is invalid. Choose the Page again in Connected Accounts.");
+            }
+            if (pageId.Length > 32)
+            {
+                _pageSelection.Delete();
+                _http.DefaultRequestHeaders.Authorization = null;
+                throw new InvalidOperationException("The selected Facebook Page ID is invalid. Choose the Page again in Connected Accounts.");
+            }
+            if (string.IsNullOrWhiteSpace(selectedPage?.PageName) && selectedPage is not null)
+            {
+                _pageSelection.Delete();
+                _http.DefaultRequestHeaders.Authorization = null;
+                throw new InvalidOperationException("The selected Facebook Page information is incomplete. Choose the Page again in Connected Accounts.");
+            }
+
+            if (string.IsNullOrWhiteSpace(effectivePageToken))
+                _http.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", token.AccessToken);
+            if (string.IsNullOrWhiteSpace(_http.DefaultRequestHeaders.Authorization?.Parameter))
+            {
+                _pageSelection.Delete();
+                _http.DefaultRequestHeaders.Authorization = null;
+                throw new InvalidOperationException("Facebook authorization is unavailable. Reconnect Facebook before publishing.");
+            }
+            HttpResponseMessage response;
             try
             {
-                pagesJson = System.Text.Json.JsonDocument.Parse(await pagesResponse.Content.ReadAsStringAsync(cancellationToken));
+                if (draft.MediaFiles.Count == 0)
+                {
+                    response = await _http.PostAsJsonAsync($"https://graph.facebook.com/v24.0/{pageId}/feed", new { message = draft.Caption }, cancellationToken);
+                }
+                else
+                {
+                    var mediaPath = draft.MediaFiles[0];
+                    if (!File.Exists(mediaPath))
+                {
+                    _http.DefaultRequestHeaders.Authorization = null;
+                    throw new InvalidOperationException("Facebook media file was not found.");
+                }
+                    var extension = Path.GetExtension(mediaPath).ToLowerInvariant();
+                    var isVideo = extension is ".mp4" or ".mov" or ".m4v";
+                    using var form = new MultipartFormDataContent();
+                    await using var stream = File.OpenRead(mediaPath);
+                    using var media = new StreamContent(stream);
+                    media.Headers.ContentType = new MediaTypeHeaderValue(isVideo ? "video/mp4" : extension == ".png" ? "image/png" : "image/jpeg");
+                    form.Add(media, isVideo ? "source" : "source", Path.GetFileName(mediaPath));
+                    form.Add(new StringContent(draft.Caption ?? string.Empty), isVideo ? "description" : "caption");
+                    response = await _http.PostAsync($"https://graph.facebook.com/v24.0/{pageId}/{(isVideo ? "videos" : "photos")}", form, cancellationToken);
+                }
             }
-            catch (System.Text.Json.JsonException)
+            catch
             {
-                _pageSelection.Delete();
                 _http.DefaultRequestHeaders.Authorization = null;
-                throw new InvalidOperationException("Facebook returned an invalid Page response. Reconnect Facebook and try again.");
+                throw;
             }
-            using (pagesJson)
+
+            using (response)
             {
-            if (pagesJson.RootElement.ValueKind != System.Text.Json.JsonValueKind.Object ||
-                !pagesJson.RootElement.TryGetProperty("data", out var pageData) || pageData.ValueKind != System.Text.Json.JsonValueKind.Array)
+            if (!response.IsSuccessStatusCode)
             {
-                _pageSelection.Delete();
+                if (response.StatusCode is System.Net.HttpStatusCode.Unauthorized or System.Net.HttpStatusCode.Forbidden)
+                {
+                    _pageSelection.Delete();
+                    _http.DefaultRequestHeaders.Authorization = null;
+                    throw new InvalidOperationException("Facebook Page access expired or was revoked. Open Connected Accounts and choose the Page again.");
+                }
                 _http.DefaultRequestHeaders.Authorization = null;
-                throw new InvalidOperationException("Facebook returned an unexpected Page list. Reconnect Facebook and try again.");
+                throw new InvalidOperationException($"Facebook publish failed ({(int)response.StatusCode}).");
             }
-            var pages = pageData.EnumerateArray()
-                .Where(page => page.ValueKind == System.Text.Json.JsonValueKind.Object)
-                .Select(page => new FacebookPage(
-                    ReadPageString(page, "id") ?? string.Empty,
-                    ReadPageString(page, "name") ?? "Unnamed Page",
-                    ReadPageString(page, "access_token")))
-                .Where(page => !string.IsNullOrWhiteSpace(page.Id) && page.Id.Length <= 32 && page.Id.All(char.IsDigit))
-                .ToList();
-            if (pages.Count == 0)
-            {
-                _pageSelection.Delete();
-                _http.DefaultRequestHeaders.Authorization = null;
-                throw new InvalidOperationException("No valid Facebook Pages are available for this account. Check Page permissions and reconnect Facebook.");
-            }
-            if (pages.Count > 1)
-            {
-                _pageSelection.Delete();
-                _http.DefaultRequestHeaders.Authorization = null;
-                throw new InvalidOperationException($"Multiple Facebook Pages are available ({string.Join(", ", pages.Select(page => page.Name))}). Select a Page in Connected Accounts before publishing.");
-            }
-            var page = pages[0];
-            pageId = page.Id;
-            if (string.IsNullOrWhiteSpace(page.AccessToken))
-            {
-                _pageSelection.Delete();
-                _http.DefaultRequestHeaders.Authorization = null;
-                throw new InvalidOperationException("Facebook did not provide access for the available Page. Reconnect Facebook and confirm Page permissions.");
-            }
-            effectivePageToken = page.AccessToken;
-            _pageSelection.Save(page.Id, page.Name, effectivePageToken);
-            selectedPage = new FacebookPageSelection(page.Id, page.Name, effectivePageToken);
-            _http.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", effectivePageToken);
-            }
-        }
-        if (string.IsNullOrWhiteSpace(pageId))
-        {
-            _pageSelection.Delete();
             _http.DefaultRequestHeaders.Authorization = null;
-            throw new InvalidOperationException("Facebook Page discovery did not return a Page ID.");
-        }
-        if (pageId.Any(ch => !char.IsDigit(ch)))
-        {
-            _pageSelection.Delete();
-            _http.DefaultRequestHeaders.Authorization = null;
-            throw new InvalidOperationException("The selected Facebook Page ID is invalid. Choose the Page again in Connected Accounts.");
-        }
-        if (pageId.Length > 32)
-        {
-            _pageSelection.Delete();
-            _http.DefaultRequestHeaders.Authorization = null;
-            throw new InvalidOperationException("The selected Facebook Page ID is invalid. Choose the Page again in Connected Accounts.");
-        }
-        if (string.IsNullOrWhiteSpace(selectedPage?.PageName) && selectedPage is not null)
-        {
-            _pageSelection.Delete();
-            _http.DefaultRequestHeaders.Authorization = null;
-            throw new InvalidOperationException("The selected Facebook Page information is incomplete. Choose the Page again in Connected Accounts.");
+            }
         }
 
-        if (string.IsNullOrWhiteSpace(effectivePageToken))
-            _http.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", token.AccessToken);
-        if (string.IsNullOrWhiteSpace(_http.DefaultRequestHeaders.Authorization?.Parameter))
-        {
-            _pageSelection.Delete();
-            _http.DefaultRequestHeaders.Authorization = null;
-            throw new InvalidOperationException("Facebook authorization is unavailable. Reconnect Facebook before publishing.");
-        }
-        HttpResponseMessage response;
-        try
-        {
-            if (draft.MediaFiles.Count == 0)
-            {
-                response = await _http.PostAsJsonAsync($"https://graph.facebook.com/v24.0/{pageId}/feed", new { message = draft.Caption }, cancellationToken);
-            }
-            else
-            {
-                var mediaPath = draft.MediaFiles[0];
-                if (!File.Exists(mediaPath))
-            {
-                _http.DefaultRequestHeaders.Authorization = null;
-                throw new InvalidOperationException("Facebook media file was not found.");
-            }
-                var extension = Path.GetExtension(mediaPath).ToLowerInvariant();
-                var isVideo = extension is ".mp4" or ".mov" or ".m4v";
-                using var form = new MultipartFormDataContent();
-                await using var stream = File.OpenRead(mediaPath);
-                using var media = new StreamContent(stream);
-                media.Headers.ContentType = new MediaTypeHeaderValue(isVideo ? "video/mp4" : extension == ".png" ? "image/png" : "image/jpeg");
-                form.Add(media, isVideo ? "source" : "source", Path.GetFileName(mediaPath));
-                form.Add(new StringContent(draft.Caption ?? string.Empty), isVideo ? "description" : "caption");
-                response = await _http.PostAsync($"https://graph.facebook.com/v24.0/{pageId}/{(isVideo ? "videos" : "photos")}", form, cancellationToken);
-            }
-        }
-        catch
-        {
-            _http.DefaultRequestHeaders.Authorization = null;
-            throw;
-        }
+        private static string? ReadPageString(System.Text.Json.JsonElement page, string propertyName) =>
+            page.TryGetProperty(propertyName, out var value) && value.ValueKind == System.Text.Json.JsonValueKind.String
+                ? value.GetString()
+                : null;
 
-        using (response)
-        {
-        if (!response.IsSuccessStatusCode)
-        {
-            if (response.StatusCode is System.Net.HttpStatusCode.Unauthorized or System.Net.HttpStatusCode.Forbidden)
-            {
-                _pageSelection.Delete();
-                _http.DefaultRequestHeaders.Authorization = null;
-                throw new InvalidOperationException("Facebook Page access expired or was revoked. Open Connected Accounts and choose the Page again.");
-            }
-            _http.DefaultRequestHeaders.Authorization = null;
-            throw new InvalidOperationException($"Facebook publish failed ({(int)response.StatusCode}).");
-        }
-        _http.DefaultRequestHeaders.Authorization = null;
-        }
     }
-
-    private static string? ReadPageString(System.Text.Json.JsonElement page, string propertyName) =>
-        page.TryGetProperty(propertyName, out var value) && value.ValueKind == System.Text.Json.JsonValueKind.String
-            ? value.GetString()
-            : null;
-
-}
+        }
+        finally
+        {
+            // Always release authorization, including failed Page discovery and cancellation.
+            _http.DefaultRequestHeaders.Authorization = null;
+        }
