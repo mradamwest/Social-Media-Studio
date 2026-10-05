@@ -42,7 +42,10 @@ public sealed class FacebookPublisher : ISocialPublisher
         if (draft.MediaFiles.Count == 1)
         {
             if (!File.Exists(draft.MediaFiles[0]))
+            {
+                _http.DefaultRequestHeaders.Authorization = null;
                 throw new InvalidOperationException("Facebook media file was not found.");
+            }
             var extension = Path.GetExtension(draft.MediaFiles[0]).ToLowerInvariant();
             if (extension is not ".jpg" and not ".jpeg" and not ".png" and not ".mp4" and not ".mov" and not ".m4v")
                 throw new InvalidOperationException("Facebook media must be JPG, JPEG, PNG, MP4, MOV, or M4V.");
