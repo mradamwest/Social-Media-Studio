@@ -114,6 +114,7 @@ public sealed class FacebookPublisher : ISocialPublisher
             }
             if (pages.Count > 1)
             {
+                _pageSelection.Delete();
                 _http.DefaultRequestHeaders.Authorization = null;
                 throw new InvalidOperationException($"Multiple Facebook Pages are available ({string.Join(", ", pages.Select(page => page.Name))}). Select a Page in Connected Accounts before publishing.");
             }
