@@ -83,26 +83,42 @@ public sealed class HostedAccountConnectionService
             !string.IsNullOrEmpty(signIn.UserInfo))
             throw new InvalidOperationException("The account connection service returned an invalid sign-in session.");
 
-        Process.Start(new ProcessStartInfo(signIn.AbsoluteUri) { UseShellExecute = true });
-        while (true)
+        try
         {
-            timeout.Token.ThrowIfCancellationRequested();
-            using var request = new HttpRequestMessage(HttpMethod.Get, "sessions/" + session.SessionId);
-            request.Headers.Add("X-Connection-Proof", proof);
-            using var response = await client.SendAsync(request, timeout.Token);
-            if (response.StatusCode == HttpStatusCode.Accepted)
+            Process.Start(new ProcessStartInfo(signIn.AbsoluteUri) { UseShellExecute = true });
+            while (true)
             {
-                await Task.Delay(TimeSpan.FromSeconds(2), timeout.Token);
-                continue;
+                timeout.Token.ThrowIfCancellationRequested();
+                using var request = new HttpRequestMessage(HttpMethod.Get, "sessions/" + session.SessionId);
+                request.Headers.Add("X-Connection-Proof", proof);
+                using var response = await client.SendAsync(request, timeout.Token);
+                if (response.StatusCode == HttpStatusCode.Accepted)
+                {
+                    await Task.Delay(TimeSpan.FromSeconds(2), timeout.Token);
+                    continue;
+                }
+                if (!response.IsSuccessStatusCode)
+                    throw new InvalidOperationException("Account sign-in expired or was declined. Please connect again.");
+                var result = await response.Content.ReadFromJsonAsync<ConnectionResult>(cancellationToken: timeout.Token);
+                if (result is null || !string.Equals(result.Provider, provider, StringComparison.OrdinalIgnoreCase) ||
+                    string.IsNullOrWhiteSpace(result.AccessToken) ||
+                    (result.ExpiresAt is not null && result.ExpiresAt <= DateTimeOffset.UtcNow))
+                    throw new InvalidOperationException("Account sign-in returned an invalid connection.");
+                return new OAuthTokenResult(result.AccessToken, result.RefreshToken, result.ExpiresAt);
             }
-            if (!response.IsSuccessStatusCode)
-                throw new InvalidOperationException("Account sign-in expired or was declined. Please connect again.");
-            var result = await response.Content.ReadFromJsonAsync<ConnectionResult>(cancellationToken: timeout.Token);
-            if (result is null || !string.Equals(result.Provider, provider, StringComparison.OrdinalIgnoreCase) ||
-                string.IsNullOrWhiteSpace(result.AccessToken) ||
-                (result.ExpiresAt is not null && result.ExpiresAt <= DateTimeOffset.UtcNow))
-                throw new InvalidOperationException("Account sign-in returned an invalid connection.");
-            return new OAuthTokenResult(result.AccessToken, result.RefreshToken, result.ExpiresAt);
+        }
+        finally
+        {
+            // Use a separate short timeout: the sign-in token may already be canceled.
+            // Cleanup must never replace the original result or error.
+            try
+            {
+                using var cleanupTimeout = new CancellationTokenSource(TimeSpan.FromSeconds(5));
+                using var cleanup = new HttpRequestMessage(HttpMethod.Delete, "sessions/" + session.SessionId);
+                cleanup.Headers.Add("X-Connection-Proof", proof);
+                using var ignored = await client.SendAsync(cleanup, cleanupTimeout.Token);
+            }
+            catch (Exception ex) when (ex is HttpRequestException or OperationCanceledException) { }
         }
     }
 

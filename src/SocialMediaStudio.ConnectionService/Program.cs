@@ -116,9 +116,7 @@ app.MapGet("/oauth/callback/{provider}", async (string provider, HttpContext con
 app.MapGet("/sessions/{id}", (string id, HttpContext context) =>
 {
     if (!sessions.TryGetValue(id, out var session) || session.ExpiresAt <= DateTimeOffset.UtcNow) return Results.NotFound();
-    var proof = context.Request.Headers["X-Connection-Proof"].ToString();
-    if (proof.Length != 64 || !proof.All(Uri.IsHexDigit) || !CryptographicOperations.FixedTimeEquals(
-        SHA256.HashData(Encoding.UTF8.GetBytes(proof)), Convert.FromHexString(session.ProofHash)))
+    if (!HasProof(context, session))
         return Results.Unauthorized();
     if (session.Failed) { Remove(id, session); return Results.StatusCode(403); }
     var token = session.Token;
@@ -126,6 +124,15 @@ app.MapGet("/sessions/{id}", (string id, HttpContext context) =>
     if (!sessions.TryRemove(id, out _)) return Results.NotFound();
     states.TryRemove(session.State, out _);
     return Results.Json(new { provider = session.Provider, token.AccessToken, token.RefreshToken, token.ExpiresAt });
+}).RequireRateLimiting("connections");
+
+// The initiating desktop can discard pending or completed tokens when sign-in is interrupted.
+app.MapDelete("/sessions/{id}", (string id, HttpContext context) =>
+{
+    if (!sessions.TryGetValue(id, out var session)) return Results.NoContent();
+    if (!HasProof(context, session)) return Results.Unauthorized();
+    Remove(id, session);
+    return Results.NoContent();
 }).RequireRateLimiting("connections");
 
 // Refresh is initially enabled for YouTube only, matching the desktop publishing path.
@@ -163,6 +170,12 @@ bool TryBrokerSettings(string provider, out OAuthProviderSettings? settings)
     if (provider.Equals("LinkedIn", StringComparison.OrdinalIgnoreCase))
         settings = settings! with { AuthorizationEndpoint = "https://www.linkedin.com/oauth/v2/authorization", UsePkce = false };
     return true;
+}
+static bool HasProof(HttpContext context, Session session)
+{
+    var proof = context.Request.Headers["X-Connection-Proof"].ToString();
+    return proof.Length == 64 && proof.All(Uri.IsHexDigit) && CryptographicOperations.FixedTimeEquals(
+        SHA256.HashData(Encoding.UTF8.GetBytes(proof)), Convert.FromHexString(session.ProofHash));
 }
 void Remove(string id, Session session) { sessions.TryRemove(id, out _); states.TryRemove(session.State, out _); }
 void RemoveExpired() { foreach (var pair in sessions) if (pair.Value.ExpiresAt <= DateTimeOffset.UtcNow) Remove(pair.Key, pair.Value); }

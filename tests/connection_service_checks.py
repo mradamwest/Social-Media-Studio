@@ -49,7 +49,7 @@ class ConnectionChecks(unittest.TestCase):
         cls.process.wait(timeout=10)
 
     @classmethod
-    def call(cls, path, payload=None, proof=None):
+    def call(cls, path, payload=None, proof=None, method=None):
         headers = {}
         if proof is not None:
             headers['X-Connection-Proof'] = proof
@@ -57,7 +57,7 @@ class ConnectionChecks(unittest.TestCase):
         if payload is not None:
             data = json.dumps(payload).encode()
             headers['Content-Type'] = 'application/json'
-        request = urllib.request.Request(cls.base + path, data=data, headers=headers)
+        request = urllib.request.Request(cls.base + path, data=data, headers=headers, method=method)
         try:
             response = cls.opener.open(request, timeout=5)
         except urllib.error.HTTPError as ex:
@@ -95,6 +95,19 @@ class ConnectionChecks(unittest.TestCase):
         self.assertEqual(self.call('/sessions/' + session)[0], 401)
         self.assertEqual(self.call('/sessions/' + session, proof='B' * 64)[0], 401)
         self.assertEqual(self.call('/sessions/' + session, proof=proof)[0], 202)
+
+    def test_cancel_requires_proof_and_invalidates_callback(self):
+        session, proof = self.start()
+        _, _, headers = self.call('/authorize/' + session)
+        state = urllib.parse.parse_qs(urllib.parse.urlparse(headers['Location']).query)['state'][0]
+        self.assertEqual(self.call('/sessions/' + session, method='DELETE')[0], 401)
+        self.assertEqual(self.call('/sessions/' + session, proof='B' * 64, method='DELETE')[0], 401)
+        self.assertEqual(self.call('/sessions/' + session, proof=proof)[0], 202)
+        self.assertEqual(self.call('/sessions/' + session, proof=proof, method='DELETE')[0], 204)
+        self.assertEqual(self.call('/sessions/' + session, proof=proof)[0], 404)
+        self.assertEqual(self.call('/authorize/' + session)[0], 400)
+        self.assertEqual(self.call('/oauth/callback/YouTube?state=' + state + '&error=access_denied')[0], 400)
+        self.assertEqual(self.call('/sessions/' + session, proof=proof, method='DELETE')[0], 204)
 
     def test_registered_callback_and_pkce(self):
         session, _ = self.start()
