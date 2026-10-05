@@ -50,6 +50,13 @@ public sealed class FacebookPublisher : ISocialPublisher
 
         var token = _tokens.LoadOAuth(Provider)
             ?? throw new InvalidOperationException("Facebook is not connected.");
+        if (string.IsNullOrWhiteSpace(token.AccessToken))
+        {
+            _tokens.Delete(Provider);
+            _pageSelection.Delete();
+            _http.DefaultRequestHeaders.Authorization = null;
+            throw new InvalidOperationException("Facebook authorization is missing. Reconnect Facebook in Connected Accounts before publishing.");
+        }
         if (token.ExpiresAt is not null && token.ExpiresAt <= DateTimeOffset.UtcNow)
         {
             _pageSelection.Delete();
