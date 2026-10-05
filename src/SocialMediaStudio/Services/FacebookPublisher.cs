@@ -91,7 +91,11 @@ public sealed class FacebookPublisher : ISocialPublisher
                 .Where(page => !string.IsNullOrWhiteSpace(page.Id) && page.Id.Length <= 32 && page.Id.All(char.IsDigit))
                 .ToList();
             if (pages.Count == 0)
+            {
+                _pageSelection.Delete();
+                _http.DefaultRequestHeaders.Authorization = null;
                 throw new InvalidOperationException("No valid Facebook Pages are available for this account. Check Page permissions and reconnect Facebook.");
+            }
             if (pages.Count > 1)
                 throw new InvalidOperationException($"Multiple Facebook Pages are available ({string.Join(", ", pages.Select(page => page.Name))}). Select a Page in Connected Accounts before publishing.");
             var page = pages[0];
