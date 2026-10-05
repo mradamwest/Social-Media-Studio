@@ -106,17 +106,19 @@ public sealed class FacebookPublisher : ISocialPublisher
             }
             using (pagesJson)
             {
-            if (!pagesJson.RootElement.TryGetProperty("data", out var pageData) || pageData.ValueKind != System.Text.Json.JsonValueKind.Array)
+            if (pagesJson.RootElement.ValueKind != System.Text.Json.JsonValueKind.Object ||
+                !pagesJson.RootElement.TryGetProperty("data", out var pageData) || pageData.ValueKind != System.Text.Json.JsonValueKind.Array)
             {
                 _pageSelection.Delete();
                 _http.DefaultRequestHeaders.Authorization = null;
                 throw new InvalidOperationException("Facebook returned an unexpected Page list. Reconnect Facebook and try again.");
             }
             var pages = pageData.EnumerateArray()
+                .Where(page => page.ValueKind == System.Text.Json.JsonValueKind.Object)
                 .Select(page => new FacebookPage(
-                    page.TryGetProperty("id", out var id) ? id.GetString() ?? string.Empty : string.Empty,
-                    page.TryGetProperty("name", out var name) ? name.GetString() ?? "Unnamed Page" : "Unnamed Page",
-                    page.TryGetProperty("access_token", out var pageToken) ? pageToken.GetString() : null))
+                    ReadPageString(page, "id") ?? string.Empty,
+                    ReadPageString(page, "name") ?? "Unnamed Page",
+                    ReadPageString(page, "access_token")))
                 .Where(page => !string.IsNullOrWhiteSpace(page.Id) && page.Id.Length <= 32 && page.Id.All(char.IsDigit))
                 .ToList();
             if (pages.Count == 0)
@@ -226,4 +228,10 @@ public sealed class FacebookPublisher : ISocialPublisher
         _http.DefaultRequestHeaders.Authorization = null;
         }
     }
+
+    private static string? ReadPageString(System.Text.Json.JsonElement page, string propertyName) =>
+        page.TryGetProperty(propertyName, out var value) && value.ValueKind == System.Text.Json.JsonValueKind.String
+            ? value.GetString()
+            : null;
+
 }
