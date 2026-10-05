@@ -80,9 +80,25 @@ public sealed class FacebookPublisher : ISocialPublisher
                 }
                 throw new InvalidOperationException($"Facebook Page discovery failed ({(int)pagesResponse.StatusCode}).");
             }
-            using var pagesJson = System.Text.Json.JsonDocument.Parse(await pagesResponse.Content.ReadAsStringAsync(cancellationToken));
+            System.Text.Json.JsonDocument pagesJson;
+            try
+            {
+                pagesJson = System.Text.Json.JsonDocument.Parse(await pagesResponse.Content.ReadAsStringAsync(cancellationToken));
+            }
+            catch (System.Text.Json.JsonException)
+            {
+                _pageSelection.Delete();
+                _http.DefaultRequestHeaders.Authorization = null;
+                throw new InvalidOperationException("Facebook returned an invalid Page response. Reconnect Facebook and try again.");
+            }
+            using (pagesJson)
+            {
             if (!pagesJson.RootElement.TryGetProperty("data", out var pageData) || pageData.ValueKind != System.Text.Json.JsonValueKind.Array)
+            {
+                _pageSelection.Delete();
+                _http.DefaultRequestHeaders.Authorization = null;
                 throw new InvalidOperationException("Facebook returned an unexpected Page list. Reconnect Facebook and try again.");
+            }
             var pages = pageData.EnumerateArray()
                 .Select(page => new FacebookPage(
                     page.TryGetProperty("id", out var id) ? id.GetString() ?? string.Empty : string.Empty,
@@ -109,6 +125,7 @@ public sealed class FacebookPublisher : ISocialPublisher
                 _pageSelection.Save(page.Id, page.Name, effectivePageToken);
                 selectedPage = new FacebookPageSelection(page.Id, page.Name, effectivePageToken);
                 _http.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", effectivePageToken);
+            }
             }
         }
         if (string.IsNullOrWhiteSpace(pageId))
