@@ -97,7 +97,10 @@ public sealed class FacebookPublisher : ISocialPublisher
                 throw new InvalidOperationException("No valid Facebook Pages are available for this account. Check Page permissions and reconnect Facebook.");
             }
             if (pages.Count > 1)
+            {
+                _http.DefaultRequestHeaders.Authorization = null;
                 throw new InvalidOperationException($"Multiple Facebook Pages are available ({string.Join(", ", pages.Select(page => page.Name))}). Select a Page in Connected Accounts before publishing.");
+            }
             var page = pages[0];
             pageId = page.Id;
             if (!string.IsNullOrWhiteSpace(page.AccessToken))
