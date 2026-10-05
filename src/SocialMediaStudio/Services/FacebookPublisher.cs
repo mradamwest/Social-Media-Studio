@@ -73,7 +73,11 @@ public sealed class FacebookPublisher : ISocialPublisher
             if (!pagesResponse.IsSuccessStatusCode)
             {
                 if (pagesResponse.StatusCode is System.Net.HttpStatusCode.Unauthorized or System.Net.HttpStatusCode.Forbidden)
+                {
+                    _pageSelection.Delete();
+                    _http.DefaultRequestHeaders.Authorization = null;
                     throw new InvalidOperationException("Facebook Page access is unavailable. Reconnect Facebook and confirm Page permissions.");
+                }
                 throw new InvalidOperationException($"Facebook Page discovery failed ({(int)pagesResponse.StatusCode}).");
             }
             using var pagesJson = System.Text.Json.JsonDocument.Parse(await pagesResponse.Content.ReadAsStringAsync(cancellationToken));
