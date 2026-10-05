@@ -111,7 +111,12 @@ public sealed class FacebookPublisher : ISocialPublisher
                 _http.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", effectivePageToken);
             }
         }
-        if (string.IsNullOrWhiteSpace(pageId)) throw new InvalidOperationException("Facebook Page discovery did not return a Page ID.");
+        if (string.IsNullOrWhiteSpace(pageId))
+        {
+            _pageSelection.Delete();
+            _http.DefaultRequestHeaders.Authorization = null;
+            throw new InvalidOperationException("Facebook Page discovery did not return a Page ID.");
+        }
         if (pageId.Any(ch => !char.IsDigit(ch)))
         {
             _pageSelection.Delete();
