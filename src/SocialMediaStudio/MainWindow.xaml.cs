@@ -239,51 +239,13 @@ public partial class MainWindow : Window
             return;
         }
 
-        var definition = ProviderConnectionCatalog.Definitions[provider];
-        var storedCredential = _developerCredentials.Load(provider);
-        if (storedCredential is null && (provider.Equals("Facebook", StringComparison.OrdinalIgnoreCase) || provider.Equals("Instagram", StringComparison.OrdinalIgnoreCase)))
-        {
-            var sibling = provider.Equals("Facebook", StringComparison.OrdinalIgnoreCase) ? "Instagram" : "Facebook";
-            storedCredential = _developerCredentials.Load(sibling);
-            if (storedCredential is not null) _developerCredentials.Save(provider, storedCredential.ClientId, storedCredential.ClientSecret);
-        }
-        var clientId = storedCredential?.ClientId
-            ?? Environment.GetEnvironmentVariable(definition.ClientIdSetting);
-
-        if (string.IsNullOrWhiteSpace(clientId))
-        {
-            var setup = new CredentialSetupWindow(provider) { Owner = this };
-            if (setup.ShowDialog() != true) return;
-
-            _developerCredentials.Save(provider, setup.ClientId, setup.ClientSecret);
-            storedCredential = _developerCredentials.Load(provider);
-            clientId = storedCredential!.ClientId;
-        }
-
-        var settings = new OAuthProviderSettings(
-            definition.Provider,
-            clientId,
-            definition.AuthorizationEndpoint,
-            definition.TokenEndpoint,
-            definition.Scope,
-            UsePkce: definition.UsePkce,
-            RequestOfflineAccess: definition.RequestOfflineAccess,
-            ClientIdParameter: definition.ClientIdParameter,
-            ScopeSeparator: definition.ScopeSeparator);
-
         try
         {
             account.State = ConnectionState.Connecting;
             AccountsList.Items.Refresh();
             button.IsEnabled = false;
 
-            var authorization = await _oauth.AuthorizeAsync(settings);
-            var clientSecret = storedCredential?.ClientSecret
-                ?? (string.IsNullOrWhiteSpace(definition.ClientSecretSetting)
-                    ? null
-                    : Environment.GetEnvironmentVariable(definition.ClientSecretSetting));
-            var token = await _tokenExchange.ExchangeAsync(
-                settings, authorization.Code, authorization.RedirectUri, clientSecret, authorization.CodeVerifier);
+            var token = await AcquireAccountTokenAsync(provider);
 
             _tokens.SaveOAuth(provider, token);
             if (provider.Equals("Facebook", StringComparison.OrdinalIgnoreCase))
@@ -312,6 +274,59 @@ public partial class MainWindow : Window
                 MessageBoxButton.OK, MessageBoxImage.Error);
         }
         finally { button.IsEnabled = true; }
+    }
+
+    private async Task<OAuthTokenResult> AcquireAccountTokenAsync(string provider)
+    {
+        if (!string.IsNullOrWhiteSpace(HostedAccountConnectionService.ConfiguredEndpoint))
+            return await new HostedAccountConnectionService().ConnectAsync(provider);
+
+        // Developer credentials are available only in an explicitly enabled development mode.
+        // A normal installation must never ask a user for platform app IDs or secrets.
+        if (!string.Equals(Environment.GetEnvironmentVariable("SOCIAL_MEDIA_STUDIO_DEVELOPER_MODE"), "1", StringComparison.Ordinal))
+            throw new InvalidOperationException($"{provider} sign-in is not available in this build yet. Social Media Studio's connection service must be configured by the app publisher. You do not need to enter your email, password, App ID, or App Secret here.");
+
+        var definition = ProviderConnectionCatalog.Definitions[provider];
+        var storedCredential = _developerCredentials.Load(provider);
+        if (storedCredential is null && (provider.Equals("Facebook", StringComparison.OrdinalIgnoreCase) || provider.Equals("Instagram", StringComparison.OrdinalIgnoreCase)))
+        {
+            var sibling = provider.Equals("Facebook", StringComparison.OrdinalIgnoreCase) ? "Instagram" : "Facebook";
+            storedCredential = _developerCredentials.Load(sibling);
+            if (storedCredential is not null) _developerCredentials.Save(provider, storedCredential.ClientId, storedCredential.ClientSecret);
+        }
+        var clientId = storedCredential?.ClientId
+            ?? Environment.GetEnvironmentVariable(definition.ClientIdSetting);
+
+        if (string.IsNullOrWhiteSpace(clientId))
+        {
+            var setup = new CredentialSetupWindow(provider) { Owner = this };
+            if (setup.ShowDialog() != true) throw new OperationCanceledException("Account setup was canceled.");
+
+            _developerCredentials.Save(provider, setup.ClientId, setup.ClientSecret);
+            storedCredential = _developerCredentials.Load(provider);
+            clientId = storedCredential!.ClientId;
+        }
+
+        var settings = new OAuthProviderSettings(
+            definition.Provider,
+            clientId,
+            definition.AuthorizationEndpoint,
+            definition.TokenEndpoint,
+            definition.Scope,
+            UsePkce: definition.UsePkce,
+            RequestOfflineAccess: definition.RequestOfflineAccess,
+            ClientIdParameter: definition.ClientIdParameter,
+            ScopeSeparator: definition.ScopeSeparator);
+
+        var authorization = await _oauth.AuthorizeAsync(settings);
+        var clientSecret = storedCredential?.ClientSecret
+                ?? (string.IsNullOrWhiteSpace(definition.ClientSecretSetting)
+                    ? null
+                    : Environment.GetEnvironmentVariable(definition.ClientSecretSetting));
+        var token = await _tokenExchange.ExchangeAsync(
+            settings, authorization.Code, authorization.RedirectUri, clientSecret, authorization.CodeVerifier);
+
+        return token;
     }
 
     private static readonly HashSet<string> SupportedMediaExtensions = new(StringComparer.OrdinalIgnoreCase)
