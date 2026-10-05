@@ -132,6 +132,12 @@ public sealed class FacebookPublisher : ISocialPublisher
 
         if (string.IsNullOrWhiteSpace(effectivePageToken))
             _http.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", token.AccessToken);
+        if (string.IsNullOrWhiteSpace(_http.DefaultRequestHeaders.Authorization?.Parameter))
+        {
+            _pageSelection.Delete();
+            _http.DefaultRequestHeaders.Authorization = null;
+            throw new InvalidOperationException("Facebook authorization is unavailable. Reconnect Facebook before publishing.");
+        }
         HttpResponseMessage response;
         if (draft.MediaFiles.Count == 0)
         {
