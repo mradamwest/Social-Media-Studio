@@ -137,9 +137,11 @@ public sealed class FacebookPublisher : ISocialPublisher
         {
         if (!response.IsSuccessStatusCode)
         {
-            if (selectedPage is not null && response.StatusCode is System.Net.HttpStatusCode.Unauthorized or System.Net.HttpStatusCode.Forbidden)
+            if (selectedPage is not null &&
+                (response.StatusCode is System.Net.HttpStatusCode.Unauthorized or System.Net.HttpStatusCode.Forbidden))
             {
                 _pageSelection.Delete();
+                _http.DefaultRequestHeaders.Authorization = null;
                 throw new InvalidOperationException("Facebook Page access expired or was revoked. Open Connected Accounts and choose the Page again.");
             }
             throw new InvalidOperationException($"Facebook publish failed ({(int)response.StatusCode}).");
