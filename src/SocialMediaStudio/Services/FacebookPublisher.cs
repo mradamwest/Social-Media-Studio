@@ -127,13 +127,16 @@ public sealed class FacebookPublisher : ISocialPublisher
             }
             var page = pages[0];
             pageId = page.Id;
-            if (!string.IsNullOrWhiteSpace(page.AccessToken))
+            if (string.IsNullOrWhiteSpace(page.AccessToken))
             {
-                effectivePageToken = page.AccessToken;
-                _pageSelection.Save(page.Id, page.Name, effectivePageToken);
-                selectedPage = new FacebookPageSelection(page.Id, page.Name, effectivePageToken);
-                _http.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", effectivePageToken);
+                _pageSelection.Delete();
+                _http.DefaultRequestHeaders.Authorization = null;
+                throw new InvalidOperationException("Facebook did not provide access for the available Page. Reconnect Facebook and confirm Page permissions.");
             }
+            effectivePageToken = page.AccessToken;
+            _pageSelection.Save(page.Id, page.Name, effectivePageToken);
+            selectedPage = new FacebookPageSelection(page.Id, page.Name, effectivePageToken);
+            _http.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", effectivePageToken);
             }
         }
         if (string.IsNullOrWhiteSpace(pageId))
