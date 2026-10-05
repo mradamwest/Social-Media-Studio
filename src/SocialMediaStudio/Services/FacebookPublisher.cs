@@ -154,6 +154,12 @@ public sealed class FacebookPublisher : ISocialPublisher
             _http.DefaultRequestHeaders.Authorization = null;
             throw new InvalidOperationException("The selected Facebook Page ID is invalid. Choose the Page again in Connected Accounts.");
         }
+        if (string.IsNullOrWhiteSpace(selectedPage?.PageName) && selectedPage is not null)
+        {
+            _pageSelection.Delete();
+            _http.DefaultRequestHeaders.Authorization = null;
+            throw new InvalidOperationException("The selected Facebook Page information is incomplete. Choose the Page again in Connected Accounts.");
+        }
 
         if (string.IsNullOrWhiteSpace(effectivePageToken))
             _http.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", token.AccessToken);
