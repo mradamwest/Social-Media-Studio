@@ -115,11 +115,13 @@ public sealed class FacebookPublisher : ISocialPublisher
         if (pageId.Any(ch => !char.IsDigit(ch)))
         {
             _pageSelection.Delete();
+            _http.DefaultRequestHeaders.Authorization = null;
             throw new InvalidOperationException("The selected Facebook Page ID is invalid. Choose the Page again in Connected Accounts.");
         }
         if (pageId.Length > 32)
         {
             _pageSelection.Delete();
+            _http.DefaultRequestHeaders.Authorization = null;
             throw new InvalidOperationException("The selected Facebook Page ID is invalid. Choose the Page again in Connected Accounts.");
         }
 
