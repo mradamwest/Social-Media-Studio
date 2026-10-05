@@ -230,16 +230,16 @@ public sealed class FacebookPublisher : ISocialPublisher
             _http.DefaultRequestHeaders.Authorization = null;
             }
         }
-
-        private static string? ReadPageString(System.Text.Json.JsonElement page, string propertyName) =>
-            page.TryGetProperty(propertyName, out var value) && value.ValueKind == System.Text.Json.JsonValueKind.String
-                ? value.GetString()
-                : null;
-
-    }
-        }
         finally
         {
             // Always release authorization, including failed Page discovery and cancellation.
             _http.DefaultRequestHeaders.Authorization = null;
         }
+    }
+
+    private static string? ReadPageString(System.Text.Json.JsonElement page, string propertyName) =>
+        page.TryGetProperty(propertyName, out var value) && value.ValueKind == System.Text.Json.JsonValueKind.String
+            ? value.GetString()
+            : null;
+
+}
