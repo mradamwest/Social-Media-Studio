@@ -53,6 +53,7 @@ public sealed class FacebookPublisher : ISocialPublisher
         if (token.ExpiresAt is not null && token.ExpiresAt <= DateTimeOffset.UtcNow)
         {
             _pageSelection.Delete();
+            _http.DefaultRequestHeaders.Authorization = null;
             throw new InvalidOperationException("Facebook connection has expired. Reconnect Facebook in Connected Accounts before publishing.");
         }
         var selectedPage = _pageSelection.Load();
