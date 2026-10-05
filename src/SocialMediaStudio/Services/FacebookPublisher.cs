@@ -182,7 +182,11 @@ public sealed class FacebookPublisher : ISocialPublisher
             else
             {
                 var mediaPath = draft.MediaFiles[0];
-                if (!File.Exists(mediaPath)) throw new InvalidOperationException("Facebook media file was not found.");
+                if (!File.Exists(mediaPath))
+            {
+                _http.DefaultRequestHeaders.Authorization = null;
+                throw new InvalidOperationException("Facebook media file was not found.");
+            }
                 var extension = Path.GetExtension(mediaPath).ToLowerInvariant();
                 var isVideo = extension is ".mp4" or ".mov" or ".m4v";
                 using var form = new MultipartFormDataContent();
