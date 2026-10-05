@@ -50,13 +50,19 @@ public sealed class YouTubePublisher : ISocialPublisher
         {
             if (string.IsNullOrWhiteSpace(token.RefreshToken))
                 throw new InvalidOperationException("YouTube connection expired. Reconnect YouTube.");
-            var definition = ProviderConnectionCatalog.Definitions[Provider];
-            var credential = _credentials.Load(Provider);
-            var clientId = credential?.ClientId ?? Environment.GetEnvironmentVariable(definition.ClientIdSetting);
-            if (string.IsNullOrWhiteSpace(clientId))
-                throw new InvalidOperationException("YouTube connection needs account setup again.");
-            var settings = new OAuthProviderSettings(definition.Provider, clientId, definition.AuthorizationEndpoint, definition.TokenEndpoint, definition.Scope);
-            var refreshed = await _tokenExchange.RefreshAsync(settings, token.RefreshToken, credential?.ClientSecret, cancellationToken);
+            OAuthTokenResult refreshed;
+            if (!string.IsNullOrWhiteSpace(HostedAccountConnectionService.ConfiguredEndpoint))
+                refreshed = await new HostedAccountConnectionService().RefreshAsync(Provider, token.RefreshToken, cancellationToken);
+            else
+            {
+                var definition = ProviderConnectionCatalog.Definitions[Provider];
+                var credential = _credentials.Load(Provider);
+                var clientId = credential?.ClientId ?? Environment.GetEnvironmentVariable(definition.ClientIdSetting);
+                if (string.IsNullOrWhiteSpace(clientId))
+                    throw new InvalidOperationException("YouTube connection needs account setup again.");
+                var settings = new OAuthProviderSettings(definition.Provider, clientId, definition.AuthorizationEndpoint, definition.TokenEndpoint, definition.Scope);
+                refreshed = await _tokenExchange.RefreshAsync(settings, token.RefreshToken, credential?.ClientSecret, cancellationToken);
+            }
             _tokens.SaveOAuth(Provider, refreshed);
             token = new StoredOAuthToken(refreshed.AccessToken, refreshed.RefreshToken, refreshed.ExpiresAt);
         }

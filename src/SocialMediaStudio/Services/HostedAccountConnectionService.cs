@@ -1,4 +1,6 @@
 using System.Diagnostics;
+using System.IO;
+using System.Text.Json;
 using System.Net;
 using System.Net.Http;
 using System.Net.Http.Json;
@@ -16,8 +18,45 @@ namespace SocialMediaStudio.Services;
 /// </summary>
 public sealed class HostedAccountConnectionService
 {
-    public static string? ConfiguredEndpoint =>
-        Environment.GetEnvironmentVariable("SOCIAL_MEDIA_STUDIO_CONNECTION_SERVICE_URL");
+    public static string? ConfiguredEndpoint
+    {
+        get
+        {
+            var environmentUrl = Environment.GetEnvironmentVariable("SOCIAL_MEDIA_STUDIO_CONNECTION_SERVICE_URL");
+            if (!string.IsNullOrWhiteSpace(environmentUrl)) return environmentUrl;
+            var path = Path.Combine(AppContext.BaseDirectory, "connection-service.json");
+            if (!File.Exists(path)) return null;
+            try
+            {
+                using var json = JsonDocument.Parse(File.ReadAllText(path));
+                return json.RootElement.TryGetProperty("serviceUrl", out var value) && value.ValueKind == JsonValueKind.String
+                    ? value.GetString() : null;
+            }
+            catch (Exception ex) when (ex is IOException or JsonException or UnauthorizedAccessException)
+            {
+                throw new InvalidOperationException("The account connection configuration could not be read. Reinstall Social Media Studio.");
+            }
+        }
+    }
+
+    public async Task<OAuthTokenResult> RefreshAsync(string provider, string refreshToken, CancellationToken cancellationToken = default)
+    {
+        if (!Uri.TryCreate(ConfiguredEndpoint, UriKind.Absolute, out var endpoint) ||
+            endpoint.Scheme != Uri.UriSchemeHttps || !string.IsNullOrEmpty(endpoint.UserInfo) ||
+            !string.IsNullOrEmpty(endpoint.Query) || !string.IsNullOrEmpty(endpoint.Fragment))
+            throw new InvalidOperationException("The account connection service is not configured correctly.");
+        using var client = new HttpClient(new HttpClientHandler { AllowAutoRedirect = false })
+        { BaseAddress = new Uri(endpoint.AbsoluteUri.TrimEnd('/') + "/"), Timeout = TimeSpan.FromSeconds(35) };
+        using var response = await client.PostAsJsonAsync("refresh", new { provider, refreshToken }, cancellationToken);
+        if (!response.IsSuccessStatusCode)
+            throw new InvalidOperationException("Your account connection could not be renewed. Reconnect the account.");
+        var result = await response.Content.ReadFromJsonAsync<ConnectionResult>(cancellationToken: cancellationToken);
+        if (result is null || !string.Equals(result.Provider, provider, StringComparison.OrdinalIgnoreCase) ||
+            string.IsNullOrWhiteSpace(result.AccessToken) ||
+            (result.ExpiresAt is not null && result.ExpiresAt <= DateTimeOffset.UtcNow))
+            throw new InvalidOperationException("Account renewal returned an invalid connection. Reconnect the account.");
+        return new OAuthTokenResult(result.AccessToken, result.RefreshToken ?? refreshToken, result.ExpiresAt);
+    }
 
     public async Task<OAuthTokenResult> ConnectAsync(string provider, CancellationToken cancellationToken = default)
     {

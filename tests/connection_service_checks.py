@@ -75,6 +75,15 @@ class ConnectionChecks(unittest.TestCase):
         self.assertNotIn(proof, session['authorizationUrl'])
         return session['sessionId'], proof
 
+    def test_health(self):
+        self.assertEqual(self.call('/health')[0], 200)
+
+    def test_refresh_rejects_unsupported_provider(self):
+        self.assertEqual(self.call('/refresh', {'provider': 'Unknown', 'refreshToken': 'test'})[0], 400)
+
+    def test_refresh_rejects_missing_token(self):
+        self.assertEqual(self.call('/refresh', {'provider': 'YouTube', 'refreshToken': ''})[0], 400)
+
     def test_reject_invalid_provider(self):
         self.assertEqual(self.call('/sessions', {'provider': 'Unknown', 'proofHash': 'A' * 64})[0], 400)
 

@@ -128,6 +128,26 @@ app.MapGet("/sessions/{id}", (string id, HttpContext context) =>
     return Results.Json(new { provider = session.Provider, token.AccessToken, token.RefreshToken, token.ExpiresAt });
 }).RequireRateLimiting("connections");
 
+// Refresh is initially enabled for YouTube only, matching the desktop publishing path.
+app.MapPost("/refresh", async (RefreshRequest request) =>
+{
+    if (!string.Equals(request.Provider, "YouTube", StringComparison.OrdinalIgnoreCase) ||
+        string.IsNullOrWhiteSpace(request.RefreshToken) || request.RefreshToken.Length > 2048)
+        return Results.BadRequest();
+    if (!TryBrokerSettings("YouTube", out var settings)) return Results.StatusCode(503);
+    var secret = Environment.GetEnvironmentVariable("SOCIAL_MEDIA_STUDIO_GOOGLE_CLIENT_SECRET");
+    if (string.IsNullOrWhiteSpace(secret)) return Results.StatusCode(503);
+    try
+    {
+        using var timeout = new CancellationTokenSource(TimeSpan.FromSeconds(30));
+        var token = await exchange.RefreshAsync(settings!, request.RefreshToken, secret, timeout.Token);
+        return Results.Json(new { provider = "YouTube", token.AccessToken, token.RefreshToken, token.ExpiresAt });
+    }
+    catch { return Results.StatusCode(401); }
+}).RequireRateLimiting("connections");
+
+app.MapGet("/health", () => Results.Ok(new { status = "ok" }));
+
 app.Run();
 string RedirectUri(string provider) => new Uri(origin, "oauth/callback/" + Uri.EscapeDataString(provider)).AbsoluteUri;
 string? SecretSetting(ProviderConnectionDefinition definition) => definition.Provider switch
@@ -149,6 +169,7 @@ void RemoveExpired() { foreach (var pair in sessions) if (pair.Value.ExpiresAt <
 static string RandomValue() => Base64Url(RandomNumberGenerator.GetBytes(32));
 static string Base64Url(byte[] bytes) => Convert.ToBase64String(bytes).TrimEnd('=').Replace('+', '-').Replace('/', '_');
 record StartRequest(string Provider, string ProofHash);
+record RefreshRequest(string Provider, string RefreshToken);
 sealed class Session(string provider, string proofHash, string state, string verifier, DateTimeOffset expiresAt)
 {
     public string Provider { get; } = provider;

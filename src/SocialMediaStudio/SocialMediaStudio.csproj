@@ -8,4 +8,7 @@
     <AssemblyName>SocialMediaStudio</AssemblyName>
     <RootNamespace>SocialMediaStudio</RootNamespace>
   </PropertyGroup>
+  <ItemGroup>
+    <Content Include="connection-service.json" CopyToOutputDirectory="PreserveNewest" CopyToPublishDirectory="Always" />
+  </ItemGroup>
 </Project>

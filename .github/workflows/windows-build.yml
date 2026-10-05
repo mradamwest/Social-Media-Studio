@@ -14,6 +14,12 @@ jobs:
           dotnet-version: '8.0.x'
       - name: Build account connection service
         run: dotnet build src/SocialMediaStudio.ConnectionService/SocialMediaStudio.ConnectionService.csproj -c Release
+      - name: Package account connection service
+        run: dotnet publish src/SocialMediaStudio.ConnectionService/SocialMediaStudio.ConnectionService.csproj -c Release --no-build -o connection-service-publish
+      - uses: actions/upload-artifact@v6
+        with:
+          name: Social-Media-Studio-Connection-Service
+          path: connection-service-publish/
       - name: Test account connection sessions
         run: python tests/connection_service_checks.py
       - run: dotnet restore SocialMediaStudio.sln
