@@ -173,23 +173,31 @@ public sealed class FacebookPublisher : ISocialPublisher
             throw new InvalidOperationException("Facebook authorization is unavailable. Reconnect Facebook before publishing.");
         }
         HttpResponseMessage response;
-        if (draft.MediaFiles.Count == 0)
+        try
         {
-            response = await _http.PostAsJsonAsync($"https://graph.facebook.com/v24.0/{pageId}/feed", new { message = draft.Caption }, cancellationToken);
+            if (draft.MediaFiles.Count == 0)
+            {
+                response = await _http.PostAsJsonAsync($"https://graph.facebook.com/v24.0/{pageId}/feed", new { message = draft.Caption }, cancellationToken);
+            }
+            else
+            {
+                var mediaPath = draft.MediaFiles[0];
+                if (!File.Exists(mediaPath)) throw new InvalidOperationException("Facebook media file was not found.");
+                var extension = Path.GetExtension(mediaPath).ToLowerInvariant();
+                var isVideo = extension is ".mp4" or ".mov" or ".m4v";
+                using var form = new MultipartFormDataContent();
+                await using var stream = File.OpenRead(mediaPath);
+                using var media = new StreamContent(stream);
+                media.Headers.ContentType = new MediaTypeHeaderValue(isVideo ? "video/mp4" : extension == ".png" ? "image/png" : "image/jpeg");
+                form.Add(media, isVideo ? "source" : "source", Path.GetFileName(mediaPath));
+                form.Add(new StringContent(draft.Caption ?? string.Empty), isVideo ? "description" : "caption");
+                response = await _http.PostAsync($"https://graph.facebook.com/v24.0/{pageId}/{(isVideo ? "videos" : "photos")}", form, cancellationToken);
+            }
         }
-        else
+        catch
         {
-            var mediaPath = draft.MediaFiles[0];
-            if (!File.Exists(mediaPath)) throw new InvalidOperationException("Facebook media file was not found.");
-            var extension = Path.GetExtension(mediaPath).ToLowerInvariant();
-            var isVideo = extension is ".mp4" or ".mov" or ".m4v";
-            using var form = new MultipartFormDataContent();
-            await using var stream = File.OpenRead(mediaPath);
-            using var media = new StreamContent(stream);
-            media.Headers.ContentType = new MediaTypeHeaderValue(isVideo ? "video/mp4" : extension == ".png" ? "image/png" : "image/jpeg");
-            form.Add(media, isVideo ? "source" : "source", Path.GetFileName(mediaPath));
-            form.Add(new StringContent(draft.Caption ?? string.Empty), isVideo ? "description" : "caption");
-            response = await _http.PostAsync($"https://graph.facebook.com/v24.0/{pageId}/{(isVideo ? "videos" : "photos")}", form, cancellationToken);
+            _http.DefaultRequestHeaders.Authorization = null;
+            throw;
         }
 
         using (response)
