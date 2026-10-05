@@ -202,8 +202,10 @@ public sealed class FacebookPublisher : ISocialPublisher
                 _http.DefaultRequestHeaders.Authorization = null;
                 throw new InvalidOperationException("Facebook Page access expired or was revoked. Open Connected Accounts and choose the Page again.");
             }
+            _http.DefaultRequestHeaders.Authorization = null;
             throw new InvalidOperationException($"Facebook publish failed ({(int)response.StatusCode}).");
         }
+        _http.DefaultRequestHeaders.Authorization = null;
         }
     }
 }
