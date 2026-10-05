@@ -196,8 +196,7 @@ public sealed class FacebookPublisher : ISocialPublisher
         {
         if (!response.IsSuccessStatusCode)
         {
-            if (selectedPage is not null &&
-                (response.StatusCode is System.Net.HttpStatusCode.Unauthorized or System.Net.HttpStatusCode.Forbidden))
+            if (response.StatusCode is System.Net.HttpStatusCode.Unauthorized or System.Net.HttpStatusCode.Forbidden)
             {
                 _pageSelection.Delete();
                 _http.DefaultRequestHeaders.Authorization = null;
