@@ -12,6 +12,10 @@ jobs:
       - uses: actions/setup-dotnet@v6
         with:
           dotnet-version: '8.0.x'
+      - name: Build account connection service
+        run: dotnet build src/SocialMediaStudio.ConnectionService/SocialMediaStudio.ConnectionService.csproj -c Release
+      - name: Test account connection sessions
+        run: python tests/connection_service_checks.py
       - run: dotnet restore SocialMediaStudio.sln
       - run: dotnet build SocialMediaStudio.sln -c Release --no-restore
       - run: dotnet publish src/SocialMediaStudio/SocialMediaStudio.csproj -c Release -r win-x64 --self-contained true -p:PublishSingleFile=true -o publish

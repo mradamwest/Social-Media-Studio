@@ -1,0 +1,12 @@
+<Project Sdk="Microsoft.NET.Sdk.Web">
+  <PropertyGroup>
+    <TargetFramework>net8.0</TargetFramework>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+  </PropertyGroup>
+  <ItemGroup>
+    <Compile Include="../SocialMediaStudio/Services/ProviderConnectionCatalog.cs" Link="ProviderConnectionCatalog.cs" />
+    <Compile Include="../SocialMediaStudio/Services/OAuthConnectionService.cs" Link="OAuthConnectionService.cs" />
+    <Compile Include="../SocialMediaStudio/Services/OAuthTokenExchangeService.cs" Link="OAuthTokenExchangeService.cs" />
+  </ItemGroup>
+</Project>
