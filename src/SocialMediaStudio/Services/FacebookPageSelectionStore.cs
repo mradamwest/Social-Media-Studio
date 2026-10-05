@@ -29,7 +29,11 @@ public sealed class FacebookPageSelectionStore
             var bytes = ProtectedData.Unprotect(File.ReadAllBytes(_path), null, DataProtectionScope.CurrentUser);
             return JsonSerializer.Deserialize<FacebookPageSelection>(Encoding.UTF8.GetString(bytes));
         }
-        catch { return null; }
+        catch
+        {
+            Delete();
+            return null;
+        }
     }
 
     public void Delete()
